@@ -1,0 +1,24 @@
+{
+  "name": "ninho-academy-backend",
+  "version": "0.0.1",
+  "description": "Backend do projeto Ninho Academy (Endpoints de API, Classes e etc...)",
+  "license": "MIT",
+  "author": "Erik G. Coutinho, Thallys Correia, Vitor Hugo Amadeu",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "node --watch --env-file=./src/.env.dev src/index.ts"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "http-status-codes": "^2.3.0",
+    "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.5",
+    "@types/node": "^24.10.1",
+    "@types/sqlite3": "^3.1.11",
+    "typescript": "^5.9.3"
+  }
+}
