@@ -17,7 +17,10 @@ CREATE TABLE Progresso (
 
 -- Adiciona o usuário
 INSERT INTO Usuarios (nome, email, senha, data_nascimento)
-VALUES ('jogador1', 'jogador@email.com', 'senha123', '2000-01-30');
+VALUES ('jogador1', 'jogador@email.com', '!Senha123', '2000-01-30');
+
+INSERT INTO Usuarios (nome, email, senha, data_nascimento)
+VALUES ('Jogador 2', 'jogador2@email.com', '$2b$10$HfNfMzxi3DIYEWogI8bDn.2L4G4W8/3RGFl2SQOihuobrxCYyNLlO', '2000-08-20');
 
 -- Adiciona o progresso inicial (XP 0) para esse usuário
 -- (Aqui, 1 é o id do 'jogador1' que acabamos de inserir)
