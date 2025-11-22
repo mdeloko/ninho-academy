@@ -8,7 +8,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "node --watch --env-file=./src/.env.dev src/index.ts"
+    "dev": "tsx --env-file=./src/.env.dev src/index.ts"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
@@ -23,6 +23,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^24.10.1",
     "@types/sqlite3": "^3.1.11",
+    "tsx": "^4.20.6",
     "typescript": "^5.9.3"
   }
 }

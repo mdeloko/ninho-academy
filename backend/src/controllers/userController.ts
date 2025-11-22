@@ -6,12 +6,20 @@ import {StatusCodes} from "http-status-codes"
 const userService = new UserService();
 
 export async function createUser(req: Request, res: Response) {
-	try {
-		const token = await userService.createUser(req.body);
-		res.status(StatusCodes.CREATED).json({ token });
-	} catch (error: any) {
-		res.status(StatusCodes.BAD_REQUEST).json({ message: error.message });
-	}
+    try {
+        const token = await userService.createUser(req.body);
+        res.status(StatusCodes.CREATED).json({ token });
+    } catch (error: any) {
+        // Verifica se a mensagem de erro contém o texto do SQLite sobre duplicidade
+        if (error.message && error.message.includes("UNIQUE constraint failed")) {
+            return res.status(StatusCodes.CONFLICT).json({ 
+                message: "Este email já está cadastrado." 
+            });
+        }
+        
+        // Para outros erros de validação ou lógica
+        res.status(StatusCodes.BAD_REQUEST).json({ message: error.message });
+    }
 }
 
 export async function login(req: Request, res: Response) {
