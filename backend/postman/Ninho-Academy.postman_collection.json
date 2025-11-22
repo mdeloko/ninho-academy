@@ -1,9 +1,10 @@
 {
 	"info": {
-		"_postman_id": "103868f2-61c9-4aa4-af64-cc87f8277814",
+		"_postman_id": "da4a0c1c-dbf3-42ec-b733-6b1dbb0a90d7",
 		"name": "Ninho-Academy",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "45855558"
+		"_exporter_id": "49680341",
+		"_collection_link": "https://vitorsilva-2022-605203.postman.co/workspace/VITOR-HUGO-AMADEU-DA-SILVA's-Wo~687fd92d-3725-4269-8a20-362845ba32b1/collection/49680341-da4a0c1c-dbf3-42ec-b733-6b1dbb0a90d7?action=share&source=collection_link&creator=49680341"
 	},
 	"item": [
 		{
@@ -74,7 +75,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"email\": \"jogador2@email.com\",\n    \"password\": \"!Senha123\"\n}",
+							"raw": "{\n    \"email\": \"vitor@email.com\",\n    \"password\": \"SenhaForte123!\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -153,7 +154,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n\t\"name\":\"Erik\"\n}",
+							"raw": "{\n    \"name\": \"Vitor Atualizado\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -172,12 +173,150 @@
 						"description": "# Endpoint para Atualizar a própria conta autenticada.\n\nEnvie o campo que quiser no body que a conta autenticada será atualizada com ele.\n\n``` json\n{\n    \"email\":\"str\",\n    \"password\": \"str\",\n    \"birthDate\": \"yyyy-mm-dd\",\n    \"name\": \"str\"\n}\n\n ```"
 					},
 					"response": []
+				},
+				{
+					"name": "Cadastrar Usúario",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\": \"Vitor Teste\",\r\n    \"email\": \"vitor@email.com\",\r\n    \"password\": \"SenhaForte123!\",\r\n    \"birthDate\": \"2000-01-01\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3000/users/register",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"users",
+								"register"
+							]
+						}
+					},
+					"response": []
 				}
 			]
 		},
 		{
 			"name": "Fluxo de Progresso",
-			"item": []
+			"item": [
+				{
+					"name": "createprogress",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"userId\": 3,\r\n    \"totalXp\": 100,\r\n    \"level\": 1\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/progress",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"progress"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Atualizar progresso",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"totalXp\": 500,\r\n    \"level\": 3\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/progress/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"progress",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Rota Progresso usuário",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/progress/user/3",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"progress",
+								"user",
+								"3"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Deletar Progresso",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/progress/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"progress",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Rota Progresso",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/progress/2",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"progress",
+								"2"
+							]
+						}
+					},
+					"response": []
+				}
+			]
 		}
 	],
 	"auth": {
