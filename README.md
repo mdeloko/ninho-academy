@@ -1,7 +1,5 @@
 # Ninho Academy
 
-Projeto da disciplina Certificadora da Competência 2 - Engenharia de Computação UTFPR Cornélio Procópio.
-
 Plataforma web para ensino de eletrônica e programação com ESP32.
 
 **Deploy:** [http://ninho-academy.43464994.xyz/](http://ninho-academy.43464994.xyz/)
@@ -29,6 +27,7 @@ ninho-academy/
 ## Como Rodar
 
 ### Requisitos
+
 - Node.js 18+
 - npm ou yarn
 
@@ -41,7 +40,7 @@ npx prisma db push
 npm run dev
 ```
 
-Servidor rodando em http://localhost:3001
+Servidor rodando em <http://localhost:3001>
 
 ### Frontend
 
@@ -51,7 +50,7 @@ npm install
 npm run dev
 ```
 
-Interface rodando em http://localhost:5173
+Interface rodando em <http://localhost:5173>
 
 ## Limitações Conhecidas
 
