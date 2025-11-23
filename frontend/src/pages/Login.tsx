@@ -8,23 +8,43 @@ import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Zap } from 'lucide-react';
 import heroImage from '@/assets/hero-electronics.jpg';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 const Login = () => {
   const navigate = useNavigate();
+  const { login, register } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock login - em produção, aqui seria a autenticação real
-    navigate('/trilha');
+    setLoading(true);
+    try {
+      await login(email, password);
+      toast.success('Login realizado com sucesso!');
+      navigate('/trilha');
+    } catch (error: any) {
+      toast.error(error.response?.data?.erro || 'Erro ao fazer login');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock signup
-    navigate('/trilha');
+    setLoading(true);
+    try {
+      await register(name, email, password);
+      toast.success('Conta criada com sucesso!');
+      navigate('/trilha');
+    } catch (error: any) {
+      toast.error(error.response?.data?.erro || 'Erro ao criar conta');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -90,8 +110,8 @@ const Login = () => {
                   />
                 </div>
 
-                <Button type="submit" variant="gradient" size="lg" className="w-full">
-                  Entrar
+                <Button type="submit" variant="gradient" size="lg" className="w-full" disabled={loading}>
+                  {loading ? 'Entrando...' : 'Entrar'}
                 </Button>
               </form>
             </TabsContent>
@@ -134,8 +154,8 @@ const Login = () => {
                   />
                 </div>
 
-                <Button type="submit" variant="gradient" size="lg" className="w-full">
-                  Criar Conta
+                <Button type="submit" variant="gradient" size="lg" className="w-full" disabled={loading}>
+                  {loading ? 'Criando...' : 'Criar Conta'}
                 </Button>
               </form>
             </TabsContent>

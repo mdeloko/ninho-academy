@@ -6,10 +6,12 @@ import { Card } from '@/components/ui/card';
 import { Mascot } from '@/components/Mascot';
 import { XPBar } from '@/components/XPBar';
 import { ModuleCard } from '@/components/ModuleCard';
-import { mockUser, mockModules } from '@/data/mockData';
+import { mockModules } from '@/data/mockData';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Trail = () => {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
   const nextModule = mockModules.find((m) => !m.isCompleted && !m.isLocked);
 
@@ -22,8 +24,8 @@ const Trail = () => {
             <div className="flex items-center gap-4">
               <Mascot size="sm" animated={false} />
               <div>
-                <h2 className="font-bold text-lg">{mockUser.name}</h2>
-                <p className="text-xs text-muted-foreground">{mockUser.email}</p>
+                <h2 className="font-bold text-lg">{user?.nome}</h2>
+                <p className="text-xs text-muted-foreground">{user?.email}</p>
               </div>
             </div>
 
@@ -39,7 +41,10 @@ const Trail = () => {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => navigate('/')}
+                onClick={() => {
+                  logout();
+                  navigate('/');
+                }}
                 title="Sair"
               >
                 <LogOut className="w-5 h-5" />
@@ -49,9 +54,9 @@ const Trail = () => {
 
           <div className="mt-4">
             <XPBar
-              currentXP={mockUser.xp}
-              xpToNextLevel={mockUser.xpToNextLevel}
-              level={mockUser.level}
+              currentXP={user?.xp || 0}
+              xpToNextLevel={500}
+              level={Math.floor((user?.xp || 0) / 100) + 1}
             />
           </div>
         </div>

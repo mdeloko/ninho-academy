@@ -2,6 +2,7 @@ import { db } from '../../infrastructure/database';
 import { z } from 'zod';
 import { LoginSchema, RegisterSchema } from './auth.schema';
 import { ErroCredenciaisInvalidas, ErroEmailJaExiste } from '../../utils/erros';
+import { gerarToken } from '../../utils/jwt';
 
 type CredenciaisLogin = z.infer<typeof LoginSchema>;
 type DadosRegistro = z.infer<typeof RegisterSchema>;
@@ -43,7 +44,7 @@ const autenticar = async (credenciais: CredenciaisLogin) => {
 
   return {
     usuario: mapearUsuarioParaResposta(usuario),
-    token: `token-dev-${usuario.id}`,
+    token: gerarToken(usuario.id),
   };
 };
 
@@ -72,7 +73,7 @@ const registrar = async (dados: DadosRegistro) => {
       ...mapearUsuarioParaResposta(novoUsuario),
       licoesConcluidas: [],
     },
-    token: `token-dev-${novoUsuario.id}`,
+    token: gerarToken(novoUsuario.id),
   };
 };
 

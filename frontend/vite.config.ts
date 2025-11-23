@@ -9,6 +9,9 @@ export default defineConfig(({ mode }) => ({
     allowedHosts: ["ninho-academy.43464994.xyz"],
     host: true,
     port: 6001,
+    fs: {
+      allow: ['.', '..'],
+    },
     proxy: {
       "/api": {
         target: "http://backend:3001",

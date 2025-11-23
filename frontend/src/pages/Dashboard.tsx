@@ -5,10 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Mascot } from '@/components/Mascot';
-import { mockUser, mockModules, mockAchievements } from '@/data/mockData';
+import { mockModules, mockAchievements } from '@/data/mockData';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const completedModules = mockModules.filter((m) => m.isCompleted).length;
   const totalModules = mockModules.length;
@@ -31,14 +33,14 @@ const Dashboard = () => {
     {
       icon: Trophy,
       label: 'XP Total',
-      value: mockUser.xp,
+      value: user?.xp || 0,
       color: 'text-success',
       bgColor: 'bg-success/10',
     },
     {
       icon: TrendingUp,
       label: 'Nível Atual',
-      value: mockUser.level,
+      value: Math.floor((user?.xp || 0) / 100) + 1,
       color: 'text-secondary',
       bgColor: 'bg-secondary/10',
     },
@@ -65,7 +67,7 @@ const Dashboard = () => {
             <Mascot size="md" animated={false} />
             <div>
               <h1 className="text-3xl font-bold">Dashboard</h1>
-              <p className="text-muted-foreground">{mockUser.name}</p>
+              <p className="text-muted-foreground">{user?.nome}</p>
             </div>
           </div>
         </div>
@@ -134,7 +136,7 @@ const Dashboard = () => {
                 <div className="pt-4 border-t">
                   <div className="text-center">
                     <div className="text-2xl font-bold text-primary mb-1">
-                      {xpToNextLevel - mockUser.xp} XP
+                      {500 - (user?.xp || 0) % 100} XP
                     </div>
                     <div className="text-sm text-muted-foreground">
                       para o próximo nível

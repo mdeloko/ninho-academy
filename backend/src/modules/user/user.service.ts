@@ -38,7 +38,7 @@ const buscarUsuarioPorId = async (id: string): Promise<any> => {
 const atualizarStatusESP32 = async (userId: string, temESP32: boolean): Promise<void> => {
   await db.usuario.update({
     where: { id: userId },
-    data: { temEsp32 },
+    data: { temEsp32: temESP32 },
   });
 };
 
