@@ -2,11 +2,11 @@ import { Module, Achievement, TheoryModule, PracticeModule, User } from '@/types
 
 export const mockUser: User = {
   id: '1',
-  name: 'Estudante',
-  email: 'estudante@exemplo.com',
-  level: 3,
-  xp: 450,
-  xpToNextLevel: 600,
+  name: 'Lucas Silva',
+  email: 'lucas.teste@gmail.com',
+  level: 2,
+  xp: 237,
+  xpToNextLevel: 500,
 };
 
 export const mockModules: Module[] = [
@@ -84,7 +84,7 @@ export const mockAchievements: Achievement[] = [
     title: 'Primeiro Passo',
     description: 'Complete seu primeiro módulo',
     icon: 'Award',
-    dateEarned: '2024-01-15',
+    dateEarned: '2025-01-15',
     isUnlocked: true,
   },
   {
@@ -92,7 +92,7 @@ export const mockAchievements: Achievement[] = [
     title: 'Mestre do LED',
     description: 'Monte seu primeiro circuito com LED',
     icon: 'Lightbulb',
-    dateEarned: '2024-01-16',
+    dateEarned: '2025-01-18',
     isUnlocked: true,
   },
   {
