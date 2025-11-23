@@ -69,7 +69,7 @@ export const Navbar: React.FC<PropriedadesNavbar> = ({ user }) => {
           </div>
 
           <div className="w-10 h-10 rounded-full bg-blue-100 border-2 border-blue-200 overflow-hidden">
-            <img src="https://picsum.photos/100/100" alt="Avatar" />
+            <img src="/assets/avatar.png" alt="Avatar" />
           </div>
         </div>
       </div>
