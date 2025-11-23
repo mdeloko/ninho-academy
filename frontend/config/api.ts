@@ -1,4 +1,6 @@
-const URL_BASE_API = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+// Em produção, usa caminhos relativos que serão resolvidos pelo proxy do servidor
+// Em desenvolvimento, o Vite proxy redireciona /api para o backend
+const URL_BASE_API = import.meta.env.VITE_API_URL || '';
 
 export const ENDPOINTS = {
   auth: {
