@@ -40,7 +40,7 @@ npx prisma db push
 npm run dev
 ```
 
-Servidor rodando em <http://localhost:3001>
+Backend rodando em <http://localhost:3001>
 
 ### Frontend
 
@@ -50,23 +50,4 @@ npm install
 npm run dev
 ```
 
-Interface rodando em <http://localhost:5173>
-
-## Limitações Conhecidas
-
-- Integração com ESP32 ainda em desenvolvimento
-- Sistema de validação de circuitos não implementado
-- Alguns módulos teóricos incompletos
-- Gamificação usa dados mockados
-- Falta implementar sistema de recuperação de senha
-
-## TODO
-
-- [ ] Implementar comunicação real com ESP32
-- [ ] Adicionar mais módulos de conteúdo
-- [ ] Sistema de validação automática de circuitos
-- [ ] Melhorar responsividade mobile
-- [ ] Adicionar testes automatizados
-- [x] Estrutura básica frontend e backend
-- [x] Sistema de autenticação
-- [x] Dashboard com progresso do usuário
+Frontend rodando em <http://localhost:5173>
