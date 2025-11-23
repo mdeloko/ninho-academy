@@ -1,77 +1,49 @@
 # Ninho Academy
 
-<p align="center">
-    <img src="frontend/assets/logo.png" alt="Logotipo Ninho Academy" width="220">
-</p>
+Projeto da disciplina Certificadora da Competência 2 - Engenharia de Computação UTFPR Cornélio Procópio.
 
-Plataforma educacional desenvolvida na disciplina **Certificadora da Competência 2** do curso de Engenharia de Computação da **UTFPR – Câmpus Cornélio Procópio**. A ideia é facilitar o processo de aprendizagem para quem está começando do universo de eletrônica, algoritmos e circuitos, com o uso do ESP32.
+Plataforma web para ensino de eletrônica e programação com ESP32.
 
-🌐 **Acesse a plataforma:** [http://ninho-academy.43464994.xyz/](http://ninho-academy.43464994.xyz/)
+**Deploy:** [http://ninho-academy.43464994.xyz/](http://ninho-academy.43464994.xyz/)
 
----
+## Sobre o Projeto
 
-## 📖 Sobre o Projeto
+Plataforma educacional que combina teoria e prática para ensinar fundamentos de eletrônica e programação embarcada usando ESP32. O projeto está em desenvolvimento ativo.
 
-O **Ninho Academy** é uma plataforma educacional completa que aproxima estudantes iniciantes dos fundamentos de algoritmos e análise de circuitos, oferecendo uma trilha de aprendizado teórico e prático com ESP32, de forma fácil e progressiva.
+### Objetivos
 
-### Objetivos principais
+- Ensinar conceitos básicos de eletrônica de forma prática
+- Integrar teoria com montagem de circuitos reais
+- Sistema de gamificação para motivar estudantes
+- Acompanhamento de progresso
 
-- oferecer uma jornada acessível, com linguagem direta e exemplos reais;
-- estimular o raciocínio lógico e o entendimento de conexões elétricas básicas;
-- integrar site, software e ESP32 para que cada passo teórico seja testado imediatamente;
-- apoiar professores e monitores com acompanhamento de progresso em tempo real.
+## Estrutura
 
----
-
-## 2. O que o estudante encontra
-
-### Módulo teórico
-
-Conteúdos curtos, progressivos e focados em iniciantes. São abordados GPIO, leitura analógica (ADC), PWM introdutório, comunicação serial e cuidados essenciais de alimentação e aterramento. Cada bloco termina com um quiz simples: acertou, segue em frente; errou, recebe feedback instantâneo.
-
-### Módulo prático
-
-Depois de liberar a parte teórica, o aluno conecta o ESP32 ao computador e segue instruções guiadas. A plataforma verifica erros comuns (pino errado, falta de resistor, ligação invertida) e explica como corrigir antes de avançar. Os desafios iniciais incluem acender LEDs, ler botões com pull-up/pull-down e controlar brilho via PWM.
-
----
-
-## 3. Arquitetura em alto nível
-
-```text
+```
 ninho-academy/
 ├─ frontend/   # React + Vite + Tailwind
-├─ backend/    # Node.js + Express + Prisma (SQLite)
-└─ firmware/   # C++ (PlatformIO) para ESP32
+├─ backend/    # Node.js + Express + Prisma
+└─ firmware/   # C++ para ESP32 (em desenvolvimento)
 ```
 
-- **Frontend**: React 18 com TypeScript e TailwindCSS, rodando como SPA.
-- **Backend**: API REST em Node.js, usando Prisma ORM com SQLite (fácil migrar para PostgreSQL).
-- **Firmware**: Código em C++ carregado no ESP32 via PlatformIO, responsável por reportar telemetria e receber comandos.
-- **Comunicação**: Web Serial API no navegador + API REST + protocolo JSON para eventos e telemetria.
+## Como Rodar
 
----
-
-## 4. Ambiente de desenvolvimento
-
-### Requisitos básicos
-
+### Requisitos
 - Node.js 18+
-- npm
-- VS Code com extensão PlatformIO (para trabalhar o firmware)
-- ESP32 conectado via USB quando quiser testar a parte prática
+- npm ou yarn
 
-### Passo a passo
-
-#### Backend
+### Backend
 
 ```bash
 cd backend
 npm install
-npx prisma db push   # cria ou atualiza o SQLite
+npx prisma db push
 npm run dev
 ```
 
-#### Frontend
+Servidor rodando em http://localhost:3001
+
+### Frontend
 
 ```bash
 cd frontend
@@ -79,47 +51,23 @@ npm install
 npm run dev
 ```
 
-#### Firmware
+Interface rodando em http://localhost:5173
 
-1. Abra a pasta `firmware/` no VS Code com PlatformIO instalado.
-2. Conecte o ESP32 e clique em **Upload** (ícone de seta) para gravar o código.
-3. Use o Serial Monitor em 115200 baud para acompanhar as mensagens (o firmware envia JSON a cada ~500 ms).
+## Limitações Conhecidas
 
----
+- Integração com ESP32 ainda em desenvolvimento
+- Sistema de validação de circuitos não implementado
+- Alguns módulos teóricos incompletos
+- Gamificação usa dados mockados
+- Falta implementar sistema de recuperação de senha
 
-## 5. Deploy
+## TODO
 
-### Frontend (deploy)
-
-Gerar build estática e publicar em qualquer serviço de hosting.
-
-```bash
-cd frontend
-npm run build
-```
-
-### Backend (deploy)
-
-- **SQLite com volume persistente**: use Docker garantindo armazenamento do arquivo `database.sqlite` e rodando `npx prisma migrate deploy` na inicialização.
-- **PostgreSQL (preferido para produção)**: altere o provider no `schema.prisma`, configure `DATABASE_URL` e faça deploy.
-
----
-
-## 6. Fluxo de aprendizagem da plataforma
-
-```mermaid
-graph LR
-    A[Cadastro] --> B[Módulo Teórico]
-    B --> C[Quizzes]
-    C --> D{Aprovado?}
-    D -->|Sim| E[Módulo Prático]
-    D -->|Não| B
-    E --> F[Conectar ESP32]
-    F --> G[Montar Circuito]
-    G --> H[Validação Automática]
-    H --> I{Correto?}
-    I -->|Sim| J[Próximo Desafio]
-    I -->|Não| K[Feedback]
-    K --> G
-    J --> L[Progresso Registrado]
-```
+- [ ] Implementar comunicação real com ESP32
+- [ ] Adicionar mais módulos de conteúdo
+- [ ] Sistema de validação automática de circuitos
+- [ ] Melhorar responsividade mobile
+- [ ] Adicionar testes automatizados
+- [x] Estrutura básica frontend e backend
+- [x] Sistema de autenticação
+- [x] Dashboard com progresso do usuário
