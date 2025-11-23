@@ -31,6 +31,7 @@ export const mockModules: Module[] = [
     xpReward: 150,
     icon: 'Lightbulb',
     order: 2,
+    firmwareCommand: 'MISSION_1_BLINK',
   },
   {
     id: '3',
@@ -53,6 +54,7 @@ export const mockModules: Module[] = [
     xpReward: 150,
     icon: 'Thermometer',
     order: 4,
+    firmwareCommand: 'MISSION_2_TOGGLE',
   },
   {
     id: '5',
@@ -75,6 +77,7 @@ export const mockModules: Module[] = [
     xpReward: 200,
     icon: 'Zap',
     order: 6,
+    firmwareCommand: 'MISSION_3_PWM',
   },
 ];
 
@@ -137,6 +140,7 @@ export const mockPracticeModule: PracticeModule = {
   id: '2',
   title: 'Primeiro Circuito: LED Piscante',
   description: 'Neste módulo prático, você aprenderá a montar seu primeiro circuito com o ESP32, fazendo um LED piscar.',
+  firmwareCommand: 'MISSION_1_BLINK',
   steps: [
     {
       id: '1',

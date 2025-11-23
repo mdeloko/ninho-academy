@@ -1,20 +1,25 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Check, X, Trophy, ArrowRight } from 'lucide-react';
+import { ArrowLeft, Check, X, Trophy, ArrowRight, Cpu, WifiOff, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { mockTheoryModule, mockPracticeModule, mockModules } from '@/data/mockData';
 import { toast } from 'sonner';
+import { useESP32 } from '@/hooks/useESP32';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Module = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  
+  const { user } = useAuth();
+  const { status, estaConectado, conectar, desconectar, definirMissao, telemetry } = useESP32();
+
   const module = mockModules.find((m) => m.id === id);
   const isTheory = module?.type === 'theory';
-  
+  const isPractice = module?.type === 'practice';
+
   const [currentSection, setCurrentSection] = useState(0);
   const [showQuiz, setShowQuiz] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -23,6 +28,7 @@ const Module = () => {
   const [isCorrect, setIsCorrect] = useState(false);
   const [score, setScore] = useState(0);
   const [completed, setCompleted] = useState(false);
+  const [missionStarted, setMissionStarted] = useState(false);
 
   if (!module) {
     return <div>Módulo não encontrado</div>;
@@ -79,10 +85,40 @@ const Module = () => {
     toast.success(`Parabéns! Você ganhou ${module.xpReward} XP! 🎉`, {
       duration: 3000,
     });
+    if (isPractice && estaConectado()) {
+      desconectar();
+    }
   };
 
   const handleBackToTrail = () => {
+    if (isPractice && estaConectado()) {
+      desconectar();
+    }
     navigate('/trilha');
+  };
+
+  const handleConnectESP32 = async () => {
+    try {
+      await conectar();
+      toast.success('ESP32 conectado com sucesso!');
+    } catch (error: any) {
+      toast.error(error.message || 'Erro ao conectar ESP32');
+    }
+  };
+
+  const handleStartMission = async () => {
+    if (!module.firmwareCommand) {
+      toast.error('Este módulo não tem missão de firmware configurada');
+      return;
+    }
+
+    try {
+      await definirMissao(module.firmwareCommand);
+      setMissionStarted(true);
+      toast.success('Missão iniciada no ESP32!');
+    } catch (error: any) {
+      toast.error(error.message || 'Erro ao iniciar missão');
+    }
   };
 
   const progress = isTheory && theoryModule
@@ -302,6 +338,84 @@ const Module = () => {
                     {practiceModule.steps[currentSection].instruction}
                   </pre>
                 </Card>
+
+                {user?.temESP32 && currentSection === practiceModule.steps.length - 1 && (
+                  <Card className="p-6 mb-6 border-2 border-primary/20 bg-primary/5">
+                    <h3 className="font-bold mb-4 flex items-center gap-2">
+                      <Cpu className="w-5 h-5 text-primary" />
+                      Validação com ESP32
+                    </h3>
+
+                    {!estaConectado() ? (
+                      <div className="space-y-4">
+                        <p className="text-sm text-muted-foreground">
+                          Conecte seu ESP32 para testar o circuito na prática e validar automaticamente.
+                        </p>
+                        <Button
+                          onClick={handleConnectESP32}
+                          disabled={status === 'connecting'}
+                          className="w-full"
+                        >
+                          {status === 'connecting' ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Conectando...
+                            </>
+                          ) : (
+                            <>
+                              <Cpu className="w-4 h-4 mr-2" />
+                              Conectar ESP32
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    ) : !missionStarted ? (
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2 text-success">
+                          <Check className="w-4 h-4" />
+                          <span className="font-semibold">ESP32 Conectado</span>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Clique abaixo para gravar a missão no ESP32 e iniciar o teste.
+                        </p>
+                        <Button
+                          variant="gradient"
+                          onClick={handleStartMission}
+                          className="w-full"
+                        >
+                          🚀 Iniciar Missão
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2 text-success mb-2">
+                          <Check className="w-4 h-4" />
+                          <span className="font-semibold">Missão em Execução</span>
+                        </div>
+
+                        <Card className="p-4 bg-black/90 text-green-400 font-mono text-xs">
+                          <div className="space-y-1">
+                            <div>{'>'} Missão: {module.firmwareCommand}</div>
+                            <div>{'>'} Status: {telemetry ? 'Recebendo telemetria...' : 'Aguardando dados...'}</div>
+                            {telemetry && (
+                              <>
+                                <div className="mt-2 pt-2 border-t border-green-900">
+                                  <div>LED: {telemetry.readings?.led ? 'ON 🟢' : 'OFF ⚫'}</div>
+                                  <div>BTN: {telemetry.readings?.btn ? 'PRESSED 🔴' : 'RELEASED ⚪'}</div>
+                                  <div>POT: {telemetry.readings?.pot || 0} / 4095</div>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </Card>
+
+                        <p className="text-sm text-muted-foreground">
+                          Observe o comportamento do seu circuito. Quando estiver funcionando corretamente, clique em "Verificar Montagem".
+                        </p>
+                      </div>
+                    )}
+                  </Card>
+                )}
 
                 <div className="flex gap-3">
                   {currentSection === practiceModule.steps.length - 1 && (

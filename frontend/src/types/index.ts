@@ -18,6 +18,7 @@ export interface Module {
   xpReward: number;
   icon: string;
   order: number;
+  firmwareCommand?: string;
 }
 
 export interface Question {
@@ -55,4 +56,16 @@ export interface PracticeModule {
   title: string;
   description: string;
   steps: PracticeStep[];
+  firmwareCommand?: string;
+}
+
+export interface Telemetry {
+  type: 'TELEMETRY';
+  userId: string;
+  missionId: string;
+  readings: {
+    led: number;
+    btn: number;
+    pot: number;
+  };
 }

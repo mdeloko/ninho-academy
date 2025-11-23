@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
-import { espService, ConnectionStatus, EspTelemetry } from '@/lib/espService';
-import { useAuth } from '@/contexts/AuthContext';
-import { api } from '@/lib/api';
+import { useState, useEffect, useCallback } from "react";
+import { espService, ConnectionStatus, EspTelemetry } from "@/lib/espService";
+import { useAuth } from "@/contexts/AuthContext";
+import { api } from "@/lib/api";
 
 export const useESP32 = () => {
   const { user } = useAuth();
-  const [status, setStatus] = useState<ConnectionStatus>('disconnected');
+  const [status, setStatus] = useState<ConnectionStatus>("disconnected");
   const [telemetry, setTelemetry] = useState<EspTelemetry | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,7 +24,7 @@ export const useESP32 = () => {
       setError(null);
       await espService.conectar();
     } catch (err: any) {
-      setError(err.message || 'Erro ao conectar');
+      setError(err.message || "Erro ao conectar");
       throw err;
     }
   }, []);
@@ -34,14 +34,14 @@ export const useESP32 = () => {
       setError(null);
       await espService.desconectar();
     } catch (err: any) {
-      setError(err.message || 'Erro ao desconectar');
+      setError(err.message || "Erro ao desconectar");
       throw err;
     }
   }, []);
 
   const sincronizarComBackend = useCallback(async () => {
     if (!user) {
-      throw new Error('Usuário não autenticado');
+      throw new Error("Usuário não autenticado");
     }
 
     try {
@@ -63,7 +63,8 @@ export const useESP32 = () => {
 
       return true;
     } catch (err: any) {
-      setError(err.message || 'Erro na sincronização');
+      console.error("Erro na sincronização:", err);
+      setError(err.message || "Erro na sincronização");
       throw err;
     }
   }, [user, conectar]);
@@ -73,7 +74,7 @@ export const useESP32 = () => {
       setError(null);
       await espService.definirMissao(missionId);
     } catch (err: any) {
-      setError(err.message || 'Erro ao definir missão');
+      setError(err.message || "Erro ao definir missão");
       throw err;
     }
   }, []);
@@ -83,7 +84,7 @@ export const useESP32 = () => {
       setError(null);
       await espService.obterStatus();
     } catch (err: any) {
-      setError(err.message || 'Erro ao obter status');
+      setError(err.message || "Erro ao obter status");
       throw err;
     }
   }, []);
