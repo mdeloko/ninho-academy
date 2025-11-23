@@ -20,6 +20,8 @@ interface AuthContextType {
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   loading: boolean;
+  isInitialized: boolean;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -28,6 +30,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
@@ -38,6 +41,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(JSON.parse(storedUser));
     }
     setLoading(false);
+    setIsInitialized(true);
+
+    // Notifica o interceptor do Axios que a autenticação foi inicializada
+    import('@/lib/api').then(module => {
+      module.markAuthAsInitialized();
+    });
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -67,8 +76,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.removeItem('user');
   };
 
+  const refreshUser = async () => {
+    if (!user) return;
+
+    try {
+      const response = await api.get(`/users/${user.id}`);
+      const updatedUser = response.data;
+
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+    } catch (error) {
+      console.error('Erro ao atualizar dados do usuário:', error);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, login, register, logout, loading }}>
+    <AuthContext.Provider value={{ user, token, login, register, logout, loading, isInitialized, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

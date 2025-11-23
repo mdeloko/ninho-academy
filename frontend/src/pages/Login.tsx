@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Mascot } from '@/components/Mascot';
@@ -13,11 +13,30 @@ import { toast } from 'sonner';
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login, register } = useAuth();
+  const { login, register, user, loading: authLoading, isInitialized } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Redireciona se já estiver autenticado
+  useEffect(() => {
+    if (!authLoading && isInitialized && user) {
+      navigate('/trilha', { replace: true });
+    }
+  }, [user, authLoading, isInitialized, navigate]);
+
+  // Mostra loading durante verificação inicial
+  if (authLoading || !isInitialized) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Verificando autenticação...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -6,9 +6,10 @@ interface ProtectedRouteProps {
 }
 
 export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const { user, loading } = useAuth();
+  const { user, loading, isInitialized } = useAuth();
 
-  if (loading) {
+  // Aguarda tanto loading quanto inicialização
+  if (loading || !isInitialized) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">

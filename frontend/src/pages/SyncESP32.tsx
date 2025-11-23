@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 
 const SyncESP32 = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { status, error, sincronizarComBackend } = useESP32();
   const [step, setStep] = useState<'inicial' | 'conectando' | 'sucesso' | 'erro'>('inicial');
 
@@ -20,6 +20,10 @@ const SyncESP32 = () => {
     setStep('conectando');
     try {
       await sincronizarComBackend();
+
+      // Atualiza dados do usuário após sincronização
+      await refreshUser();
+
       setStep('sucesso');
       toast.success('ESP32 conectado e sincronizado com sucesso!');
 

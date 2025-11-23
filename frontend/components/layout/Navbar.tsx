@@ -39,23 +39,19 @@ export const Navbar: React.FC<PropriedadesNavbar> = ({ user }) => {
 
         <div className="flex items-center gap-4">
           {user.temESP32 && (
-            <button
+            <Button
               onClick={aoSincronizarESP}
               disabled={statusSincronizacao === "sincronizando"}
-              className={`hidden md:flex items-center gap-2 px-3 py-1 rounded-xl border-2 transition-all text-xs font-bold uppercase tracking-wider ${
-                statusSincronizacao === "sucesso"
-                  ? "bg-green-600 text-white border-green-700"
-                  : statusSincronizacao === "erro"
-                  ? "bg-red-600 text-white border-red-700"
-                  : statusSincronizacao === "sincronizando"
-                  ? "bg-gray-600 text-gray-300 border-gray-700 cursor-wait"
-                  : "bg-brand-brown text-brand-yellow border-transparent hover:bg-gray-800"
-              }`}
+              variant={statusSincronizacao === "sucesso" ? "success" : statusSincronizacao === "erro" ? "danger" : statusSincronizacao === "sincronizando" ? "secondary" : "outline"}
+              size="sm"
+              className="hidden md:flex items-center gap-2 px-3 py-1 rounded-xl text-xs"
               title="Gravar meu ID no ESP32"
             >
               <span>{statusSincronizacao === "sincronizando" ? "⏳" : statusSincronizacao === "sucesso" ? "✅" : statusSincronizacao === "erro" ? "❌" : "🔄"}</span>
-              {statusSincronizacao === "sincronizando" ? "Sincronizando..." : statusSincronizacao === "sucesso" ? "Sucesso!" : statusSincronizacao === "erro" ? "Erro" : "Sync ESP"}
-            </button>
+              <span className="ml-1">
+                {statusSincronizacao === "sincronizando" ? "Sincronizando..." : statusSincronizacao === "sucesso" ? "Sucesso!" : statusSincronizacao === "erro" ? "Erro" : "Sync ESP"}
+              </span>
+            </Button>
           )}
 
           <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-xl bg-white border-2 border-gray-100">
