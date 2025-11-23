@@ -13,6 +13,12 @@ export default class UserService {
 	private readonly userRepository = new UserRepository();
 
 	public async createUser(user: CreateUserDTO): Promise<string> {
+
+		const userExists = await this.userRepository.findByEmail(user.email);
+        if (userExists) {
+            throw new Error("Email já cadastrado.");
+        }
+
 		const hashedPassword = await bcrypt.hash(user.password, 10);
 		const userEntity = UserEntity.create(
 			user.name,
@@ -22,17 +28,19 @@ export default class UserService {
 			0,
 		);
 
-		await this.userRepository.create(userEntity);
-
-		const createdUser = await this.userRepository.findByEmail(user.email);
-		if (!createdUser) {
+		const wasUserCreated = await this.userRepository.create(userEntity);
+		if (!wasUserCreated) {
 			throw new Error("Falha ao criar o usuário.");
 		}
+		const createdUser = await this.userRepository.findByEmail(user.email);
 
-		const token = jwt.sign({ id: createdUser.id }, JWT_SECRET, {
+		if(createdUser){
+			const token = jwt.sign({ id: createdUser.id }, JWT_SECRET, {
 			expiresIn: "1h",
-		});
-		return token;
+			});
+			return token;
+		}
+		throw new Error("Falha ao encontrar usuário após criação bem sucedida.");
 	}
 
 	public async login(credentials: LoginUserDTO): Promise<string | null> {
