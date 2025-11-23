@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Mascot } from '@/components/Mascot';
 import { XPBar } from '@/components/XPBar';
 import { ModuleCard } from '@/components/ModuleCard';
+import { ESP32Status } from '@/components/ESP32Status';
 import { mockModules } from '@/data/mockData';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -52,12 +53,17 @@ const Trail = () => {
             </div>
           </div>
 
-          <div className="mt-4">
+          <div className="mt-4 space-y-3">
             <XPBar
               currentXP={user?.xp || 0}
               xpToNextLevel={500}
               level={Math.floor((user?.xp || 0) / 100) + 1}
             />
+            {user?.temESP32 && (
+              <div className="flex justify-center">
+                <ESP32Status showConnectButton={true} compact={false} />
+              </div>
+            )}
           </div>
         </div>
       </header>

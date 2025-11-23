@@ -11,6 +11,7 @@ import About from "./pages/About";
 import Module from "./pages/Module";
 import Dashboard from "./pages/Dashboard";
 import ESP32Guide from "./pages/ESP32Guide";
+import SyncESP32 from "./pages/SyncESP32";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,14 @@ const App = () => (
             <Route path="/" element={<Login />} />
             <Route path="/sobre" element={<About />} />
             <Route path="/ajuda-esp32" element={<ESP32Guide />} />
+            <Route
+              path="/sync-esp32"
+              element={
+                <ProtectedRoute>
+                  <SyncESP32 />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/trilha"
               element={
