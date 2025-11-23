@@ -4,20 +4,28 @@ import UserEntity from "../entities/UserEntity.ts";
 export default class UserRepository {
 
     public async create(user: UserEntity): Promise<boolean> {
+        // Abre a conexão
         await using conn = await Database.getDatabase();
 
-        return new Promise(async (resolve, reject) => {
-            await conn.db.run(
+        // O erro estava aqui: Removemos o 'async' antes de (resolve, reject)
+        return new Promise((resolve, reject) => {
+            
+            // O erro estava aqui também: Removemos o 'await' antes de conn.db.run
+            // O sqlite3 trabalha com callbacks, não promises nativas nessa função
+            conn.db.run(
                 "INSERT INTO Usuarios (nome, email, senha, data_nascimento) VALUES (?,?,?,?)",
                 [user.name, user.email, user.password, user.birthDate],
                 function (err) {
                     if (err) {
-                        reject(err.message);
+                        // Rejeita a promessa para que o Controller consiga pegar o erro
+                        // Importante: Passamos o objeto 'err' inteiro, não só a mensagem
+                        reject(err); 
+                    } else {
+                        resolve(true);
                     }
-                    resolve(true);
                 }
-            )
-        })
+            );
+        });
     }
 
     public async findByEmail(email: string): Promise<UserEntity | null> {
