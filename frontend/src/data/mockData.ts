@@ -1,4 +1,4 @@
-import { Module, Achievement, TheoryModule, PracticeModule, User } from '@/types';
+import { Module, TheoryModule, PracticeModule, User } from '@/types';
 
 export const mockUser: User = {
   id: '1',
@@ -75,39 +75,6 @@ export const mockModules: Module[] = [
     xpReward: 200,
     icon: 'Zap',
     order: 6,
-  },
-];
-
-export const mockAchievements: Achievement[] = [
-  {
-    id: '1',
-    title: 'Primeiro Passo',
-    description: 'Complete seu primeiro módulo',
-    icon: 'Award',
-    dateEarned: '2025-01-15',
-    isUnlocked: true,
-  },
-  {
-    id: '2',
-    title: 'Mestre do LED',
-    description: 'Monte seu primeiro circuito com LED',
-    icon: 'Lightbulb',
-    dateEarned: '2025-01-18',
-    isUnlocked: true,
-  },
-  {
-    id: '3',
-    title: 'Estudante Dedicado',
-    description: 'Complete 3 módulos teóricos',
-    icon: 'BookOpen',
-    isUnlocked: false,
-  },
-  {
-    id: '4',
-    title: 'Engenheiro Júnior',
-    description: 'Complete 5 módulos práticos',
-    icon: 'Cpu',
-    isUnlocked: false,
   },
 ];
 

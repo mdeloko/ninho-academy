@@ -19,7 +19,6 @@ const mapearUsuarioParaResposta = (usuario: any) => {
     sincronizado: dados.sincronizado,
     sequenciaDias: dados.sequenciaDias || 0,
     trilhaId: dados.trilhaId,
-    conquistas: [],
     licoesConcluidas: (progresso || []).map((p: any) => p.licaoId),
   };
 };

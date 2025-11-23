@@ -10,6 +10,7 @@ import Trail from "./pages/Trail";
 import About from "./pages/About";
 import Module from "./pages/Module";
 import Dashboard from "./pages/Dashboard";
+import ESP32Guide from "./pages/ESP32Guide";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Login />} />
             <Route path="/sobre" element={<About />} />
+            <Route path="/ajuda-esp32" element={<ESP32Guide />} />
             <Route
               path="/trilha"
               element={

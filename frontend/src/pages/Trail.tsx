@@ -73,7 +73,7 @@ const Trail = () => {
             Sua Trilha de Aprendizado
           </h1>
           <p className="text-muted-foreground">
-            Continue progredindo para desbloquear novos módulos e conquistar medalhas! 🏆
+            Continue progredindo para desbloquear novos módulos! 🏆
           </p>
 
           {nextModule && (

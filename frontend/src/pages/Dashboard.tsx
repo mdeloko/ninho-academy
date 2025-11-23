@@ -1,11 +1,11 @@
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Trophy, Target, Clock, TrendingUp, Award as AwardIcon } from 'lucide-react';
+import { ArrowLeft, Trophy, Target, Clock, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Mascot } from '@/components/Mascot';
-import { mockModules, mockAchievements } from '@/data/mockData';
+import { mockModules } from '@/data/mockData';
 import { useAuth } from '@/contexts/AuthContext';
 
 const Dashboard = () => {
@@ -15,12 +15,9 @@ const Dashboard = () => {
   const completedModules = mockModules.filter((m) => m.isCompleted).length;
   const totalModules = mockModules.length;
   const completionRate = Math.round((completedModules / totalModules) * 100);
-  
+
   const theoryModules = mockModules.filter((m) => m.type === 'theory' && m.isCompleted).length;
   const practiceModules = mockModules.filter((m) => m.type === 'practice' && m.isCompleted).length;
-  
-  const unlockedAchievements = mockAchievements.filter((a) => a.isUnlocked).length;
-  const totalAchievements = mockAchievements.length;
 
   const stats = [
     {
@@ -43,13 +40,6 @@ const Dashboard = () => {
       value: Math.floor((user?.xp || 0) / 100) + 1,
       color: 'text-secondary',
       bgColor: 'bg-secondary/10',
-    },
-    {
-      icon: AwardIcon,
-      label: 'Conquistas',
-      value: `${unlockedAchievements}/${totalAchievements}`,
-      color: 'text-special',
-      bgColor: 'bg-special/10',
     },
   ];
 
@@ -76,7 +66,7 @@ const Dashboard = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8 max-w-6xl">
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           {stats.map((stat, index) => (
             <motion.div
               key={stat.label}
@@ -95,7 +85,7 @@ const Dashboard = () => {
           ))}
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8">
+        <div className="grid gap-8">
           {/* Progresso Geral */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -147,64 +137,12 @@ const Dashboard = () => {
             </Card>
           </motion.div>
 
-          {/* Conquistas */}
+          {/* Histórico Recente */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
           >
-            <Card className="p-6">
-              <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-                <AwardIcon className="w-5 h-5 text-success" />
-                Conquistas
-              </h2>
-
-              <div className="space-y-3">
-                {mockAchievements.map((achievement) => (
-                  <motion.div
-                    key={achievement.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className={`p-4 rounded-xl border-2 ${
-                      achievement.isUnlocked
-                        ? 'border-success bg-success/5'
-                        : 'border-border bg-muted/30 opacity-60'
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div
-                        className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                          achievement.isUnlocked ? 'bg-success text-success-foreground' : 'bg-muted'
-                        }`}
-                      >
-                        <Trophy className="w-5 h-5" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-bold text-sm mb-1">{achievement.title}</div>
-                        <div className="text-xs text-muted-foreground mb-1">
-                          {achievement.description}
-                        </div>
-                        {achievement.dateEarned && (
-                          <div className="text-xs text-success font-medium">
-                            Conquistado em {new Date(achievement.dateEarned).toLocaleDateString('pt-BR')}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </Card>
-          </motion.div>
-        </div>
-
-        {/* Histórico Recente */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="mt-8"
-        >
           <Card className="p-6">
             <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
               <Clock className="w-5 h-5 text-secondary" />
@@ -236,11 +174,10 @@ const Dashboard = () => {
             </div>
           </Card>
         </motion.div>
+        </div>
       </main>
     </div>
   );
 };
-
-const xpToNextLevel = mockUser.xpToNextLevel;
 
 export default Dashboard;

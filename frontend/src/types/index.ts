@@ -20,15 +20,6 @@ export interface Module {
   order: number;
 }
 
-export interface Achievement {
-  id: string;
-  title: string;
-  description: string;
-  icon: string;
-  dateEarned?: string;
-  isUnlocked: boolean;
-}
-
 export interface Question {
   id: string;
   question: string;
