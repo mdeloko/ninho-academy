@@ -1,6 +1,8 @@
 # Ninho Academy
 
-![Logotipo Ninho Academy](frontend/assets/logo.png)
+<p align="center">
+    <img src="frontend/assets/logo.png" alt="Logotipo Ninho Academy" width="220">
+</p>
 
 Plataforma educacional desenvolvida na disciplina **Certificadora da Competência 2** do curso de Engenharia de Computação da **UTFPR – Câmpus Cornélio Procópio**. A ideia é facilitar o processo de aprendizagem para quem está começando do universo de eletrônica, algoritmos e circuitos, com o uso do ESP32.
 
@@ -103,7 +105,7 @@ npm run build
 
 ---
 
-## 6. Fluxo de aprendizagem
+## 6. Fluxo de aprendizagem da plataforma
 
 ```mermaid
 graph LR
