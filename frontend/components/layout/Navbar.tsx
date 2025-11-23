@@ -45,11 +45,11 @@ export const Navbar: React.FC<PropriedadesNavbar> = ({ user }) => {
               variant={statusSincronizacao === "sucesso" ? "success" : statusSincronizacao === "erro" ? "danger" : statusSincronizacao === "sincronizando" ? "secondary" : "outline"}
               size="sm"
               className="hidden md:flex items-center gap-2 px-3 py-1 rounded-xl text-xs"
-              title="Gravar meu ID no ESP32"
+              title="Gravar o ID no ESP32"
             >
               <span>{statusSincronizacao === "sincronizando" ? "⏳" : statusSincronizacao === "sucesso" ? "✅" : statusSincronizacao === "erro" ? "❌" : "🔄"}</span>
               <span className="ml-1">
-                {statusSincronizacao === "sincronizando" ? "Sincronizando..." : statusSincronizacao === "sucesso" ? "Sucesso!" : statusSincronizacao === "erro" ? "Erro" : "Sync ESP"}
+                {statusSincronizacao === "sincronizando" ? "Sincronizando..." : statusSincronizacao === "sucesso" ? "Sucesso!" : statusSincronizacao === "erro" ? "Erro" : "Sincronizar ESP32"}
               </span>
             </Button>
           )}
