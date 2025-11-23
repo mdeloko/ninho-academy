@@ -19,7 +19,7 @@ services:
       - appnet
 
   backend:
-    image: node:20-alpine
+    image: node:20
     working_dir: /app/backend
     command: sh -c "npm ci && npx prisma generate && npx prisma db push && npm run dev"
     ports:
