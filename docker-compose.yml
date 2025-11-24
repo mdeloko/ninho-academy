@@ -1,0 +1,43 @@
+services:
+  frontend:
+    image: node:20-alpine
+    working_dir: /app/frontend
+    command: sh -c "npm ci && npm run dev -- --host --port 3000"
+    ports:
+      - "6001:3000"
+    environment:
+      VITE_API_URL: "${VITE_API_URL:-http://localhost:6001}"
+      VITE_APP_NAME: "${VITE_APP_NAME:-Ninho Academy}"
+      CHOKIDAR_USEPOLLING: "true"
+    volumes:
+      - ./frontend:/app/frontend
+      - frontend_node_modules:/app/frontend/node_modules
+    depends_on:
+      backend:
+        condition: service_started
+    networks:
+      - appnet
+
+  backend:
+    image: node:20
+    working_dir: /app/backend
+    command: sh -c "npm ci && npm run dev"
+    ports:
+      - "6002:3000"
+    environment:
+      PORT: 3000
+      DATABASE_TYPE: sqlite
+      DATABASE_NAME: database.sqlite
+      NODE_ENV: development
+    volumes:
+      - ./backend:/app/backend
+      - backend_node_modules:/app/backend/node_modules
+    networks:
+      - appnet
+
+networks:
+  appnet:
+
+volumes:
+  frontend_node_modules:
+  backend_node_modules:
