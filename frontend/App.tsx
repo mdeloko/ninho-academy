@@ -4,6 +4,7 @@ import { Dashboard } from "./pages/Dashboard";
 import { LessonRunner } from "./pages/LessonRunner";
 import { TrackSelection } from "./pages/TrackSelection";
 import { SyncESP32Page } from "./pages/SyncESP32Page";
+import { ESP32ConnectionPage } from "./pages/ESP32ConnectionPage";
 import { LandingPage } from "./pages/LandingPage";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
@@ -14,7 +15,7 @@ import { progressService, type Progress } from "./services/progressService";
 
 import { missions } from "./data/missions";
 
-type Tela = "LANDING" | "AUTH_LOGIN" | "AUTH_REGISTER" | "AUTH_FORGOT" | "SETUP" | "SYNC" | "DASHBOARD" | "LESSON";
+type Tela = "LANDING" | "AUTH_LOGIN" | "AUTH_REGISTER" | "AUTH_FORGOT" | "SETUP" | "SYNC" | "ESP32_SETUP" | "DASHBOARD" | "LESSON";
 
 const App: React.FC = () => {
   const [tela, setTela] = useState<Tela>("LANDING");
@@ -114,10 +115,12 @@ const App: React.FC = () => {
     setUsuario(usuarioAtualizado);
     localStorage.setItem("user", JSON.stringify(usuarioAtualizado));
 
-    // Removido: chamada API para ESP32 status
-
-    // Pular sincronização ESP32 por enquanto
-    setTela("DASHBOARD");
+    // Se tem ESP32, vai para página de setup
+    if (temESP32) {
+      setTela("ESP32_SETUP");
+    } else {
+      setTela("DASHBOARD");
+    }
   };
 
   const aoCompletarSincronizacao = async () => {
@@ -218,6 +221,7 @@ const App: React.FC = () => {
   const aoSair = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    localStorage.removeItem("userProgress");
     setUsuario(null);
     setTela("LANDING");
   };
@@ -238,9 +242,16 @@ const App: React.FC = () => {
 
       {tela === "SYNC" && usuario && <SyncESP32Page userId={usuario.id} onSyncComplete={aoCompletarSincronizacao} onSkip={aoPularSincronizacao} />}
 
+      {tela === "ESP32_SETUP" && (
+        <ESP32ConnectionPage
+          onComplete={() => setTela("DASHBOARD")}
+          onBack={() => setTela("DASHBOARD")}
+        />
+      )}
+
       {tela === "DASHBOARD" && usuario && (
         <>
-          <Navbar user={usuario} onLogout={aoSair} />
+          <Navbar user={usuario} onLogout={aoSair} onOpenESP32Setup={() => setTela("ESP32_SETUP")} />
           <Dashboard user={usuario} currentLevel={progresso?.level || 0} onLessonSelect={aoSelecionarLicao} />
         </>
       )}
