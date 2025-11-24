@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { Button } from "../components/ui/Button";
-import { ENDPOINTS } from "../config/api";
 
 interface LoginPageProps {
   onLoginSuccess: (user: any) => void;
@@ -21,23 +20,33 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onNavigate
     setCarregando(true);
 
     try {
-      const resposta = await fetch(ENDPOINTS.auth.login, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password: senha }),
-      });
+      // MOCK: Simular login sem fazer chamada real
+      await new Promise((r) => setTimeout(r, 800)); // Simular delay
 
-      const dados = await resposta.json();
-
-      if (!resposta.ok) {
-        throw new Error(dados.message || "Erro ao entrar.");
+      if (!email || !senha) {
+        throw new Error("Email e senha são obrigatórios");
       }
 
+      // Mock de usuário
+      const mockToken = btoa(
+        JSON.stringify({
+          id: "mock-user-" + Math.random().toString(36).substr(2, 9),
+          email: email,
+          name: email.split("@")[0],
+          iat: Math.floor(Date.now() / 1000),
+        })
+      );
+
+      // Separar token em 3 partes (simulando JWT)
+      const tokenFake = `header.${mockToken}.signature`;
+
+      console.log("[MOCK] Login bem-sucedido para:", email);
+
       // Salvar token
-      localStorage.setItem("token", dados.token);
+      localStorage.setItem("token", tokenFake);
 
       // Decodificar token para pegar user info
-      const tokenPayload = JSON.parse(atob(dados.token.split(".")[1]));
+      const tokenPayload = JSON.parse(atob(tokenFake.split(".")[1]));
       onLoginSuccess({
         id: tokenPayload.id,
         email: tokenPayload.email,
@@ -51,7 +60,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onNavigate
         conquistas: [],
       });
     } catch (erro: any) {
-      setErro(erro.message);
+      console.error("[MOCK] Erro no login:", erro);
+      setErro(erro.message || "Erro ao entrar.");
     } finally {
       setCarregando(false);
     }
