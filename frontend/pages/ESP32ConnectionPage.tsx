@@ -8,6 +8,7 @@ import { Button } from '../components/ui/Button';
 import { ConsoleOutput } from '../components/esp/ConsoleOutput';
 import { ConnectionGuide } from '../components/esp/ConnectionGuide';
 import { connectESP, formatMacAddr, sleep, supported } from '../lib/esptool';
+import { FIRMWARE_CONFIG } from '../config/firmware';
 
 type PageState = 'initial' | 'connecting' | 'connected' | 'flashing' | 'complete' | 'error' | 'guide';
 
@@ -23,6 +24,7 @@ export const ESP32ConnectionPage: React.FC<ESP32ConnectionPageProps> = ({ onComp
   const [chipName, setChipName] = useState<string>('');
   const [macAddr, setMacAddr] = useState<string>('');
   const [flashProgress, setFlashProgress] = useState<number>(0);
+  const [currentVersion, setCurrentVersion] = useState<string | null>(null);
 
   // Adiciona log (EXATO DO OPEN SOURCE)
   const addOutput = (msg: string) => {
@@ -83,6 +85,42 @@ export const ESP32ConnectionPage: React.FC<ESP32ConnectionPageProps> = ({ onComp
         }
       }
     }
+  };
+
+  // Handler do botão "Gravar Firmware" - verifica versão antes
+  const handleProgramFirmware = async () => {
+    // Primeiro, tenta verificar se já tem firmware e qual versão
+    addOutput('Verificando versão atual do firmware...');
+
+    try {
+      const version = await checkFirmwareVersion();
+
+      if (version) {
+        addOutput(`Versão detectada: ${version}`);
+        setCurrentVersion(version);
+
+        if (version === FIRMWARE_CONFIG.version) {
+          const shouldReflash = confirm(
+            `O ESP32 já possui a versão ${version} do firmware.\n\nDeseja regravar mesmo assim?`
+          );
+
+          if (!shouldReflash) {
+            addOutput('Gravação cancelada pelo usuário.');
+            return;
+          }
+        } else {
+          addOutput(`Nova versão disponível: ${FIRMWARE_CONFIG.version}`);
+        }
+      } else {
+        addOutput('Não foi possível detectar versão (firmware antigo ou não gravado).');
+        addOutput('Prosseguindo com a gravação...');
+      }
+    } catch (error) {
+      addOutput('Erro ao verificar versão, prosseguindo com gravação...');
+    }
+
+    // Prossegue com a gravação
+    await programFirmware();
   };
 
   // Flash do firmware (LÓGICA EXATA DO OPEN SOURCE - App.js linha 150)
@@ -151,6 +189,16 @@ export const ESP32ConnectionPage: React.FC<ESP32ConnectionPageProps> = ({ onComp
 
       addOutput('Firmware gravado com sucesso!');
       addOutput('Reinicie o ESP32 para executar o novo firmware.');
+
+      // Desconectar após flash para liberar a porta
+      try {
+        await espStub.disconnect();
+        await espStub.port.close();
+        addOutput('Porta serial liberada.');
+      } catch (e) {
+        console.warn('Erro ao fechar porta:', e);
+      }
+
       setPageState('complete');
     } catch (e: any) {
       addOutput(`ERRO ao gravar firmware!`);
@@ -167,6 +215,71 @@ export const ESP32ConnectionPage: React.FC<ESP32ConnectionPageProps> = ({ onComp
 
   const showGuide = () => {
     setPageState('guide');
+  };
+
+  // Verifica versão do firmware via Serial (após já estar gravado e rodando)
+  const checkFirmwareVersion = async (): Promise<string | null> => {
+    try {
+      // Conecta via serial normal (não para flash)
+      const port = await (navigator as any).serial.requestPort();
+      await port.open({ baudRate: 115200 });
+
+      // Configura reader/writer
+      const decoder = new TextDecoderStream();
+      const inputDone = port.readable.pipeTo(decoder.writable);
+      const reader = decoder.readable.getReader();
+
+      const encoder = new TextEncoderStream();
+      const outputDone = encoder.readable.pipeTo(port.writable);
+      const writer = encoder.writable.getWriter();
+
+      // Envia comando GET_VERSION
+      await writer.write(JSON.stringify({ type: 'GET_VERSION' }) + '\n');
+
+      // Aguarda resposta (timeout de 2 segundos)
+      const timeout = setTimeout(() => {
+        reader.cancel();
+        writer.close();
+        port.close();
+      }, 2000);
+
+      let version: string | null = null;
+
+      try {
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+
+          // Processa linha recebida
+          const lines = value.split('\n');
+          for (const line of lines) {
+            if (line.trim()) {
+              try {
+                const response = JSON.parse(line);
+                if (response.type === 'VERSION') {
+                  version = response.version;
+                  clearTimeout(timeout);
+                  break;
+                }
+              } catch (e) {
+                // Ignora linhas que não são JSON
+              }
+            }
+          }
+          if (version) break;
+        }
+      } finally {
+        clearTimeout(timeout);
+        await reader.cancel();
+        await writer.close();
+        await port.close();
+      }
+
+      return version;
+    } catch (error) {
+      console.error('Erro ao verificar versão:', error);
+      return null;
+    }
   };
 
   // RENDERIZAÇÃO
@@ -271,7 +384,7 @@ export const ESP32ConnectionPage: React.FC<ESP32ConnectionPageProps> = ({ onComp
             <p className="text-gray-600">
               Vamos gravar o firmware da plataforma Ninho Academy no seu ESP32.
             </p>
-            <Button size="lg" fullWidth onClick={programFirmware}>
+            <Button size="lg" fullWidth onClick={handleProgramFirmware}>
               📤 Gravar Firmware
             </Button>
           </div>
