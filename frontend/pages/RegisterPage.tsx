@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import { Button } from "../components/ui/Button";
 import { ENDPOINTS } from "../config/api";
+import { progressService } from "../services/progressService";
 
 interface RegisterPageProps {
-  onRegisterSuccess: (user: any) => void;
+  onRegisterSuccess: (user: any, initialProgress?: any) => void;
   onNavigateLogin: () => void;
 }
 
@@ -76,8 +77,18 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess, o
       // Salvar dados do usuário também
       localStorage.setItem("user", JSON.stringify(usuario));
 
+      // Criar progresso inicial para o novo usuário
+      let initialProgress = null;
+      try {
+        console.log("[REGISTER] Criando progresso inicial...");
+        initialProgress = await progressService.createProgress(usuario.id);
+      } catch (progErro) {
+        console.error("[REGISTER] Erro ao criar progresso inicial:", progErro);
+        // Não falhar o registro se o progresso falhar, o App tentará buscar/criar depois
+      }
+
       console.log("[REGISTER] Cadastro bem-sucedido:", email);
-      onRegisterSuccess(usuario);
+      onRegisterSuccess(usuario, initialProgress);
     } catch (erro: any) {
       console.error("[REGISTER] Erro:", erro);
       setErro(erro.message || "Erro ao criar conta.");

@@ -54,7 +54,7 @@ const App: React.FC = () => {
     setCarregando(false);
   }, []);
 
-  const aoAutenticarComSucesso = async (usuarioLogado: User) => {
+  const aoAutenticarComSucesso = async (usuarioLogado: User, initialProgress?: Progress) => {
     // Garantir que o usuário tem todos os campos necessários
     const usuarioCompleto: User = {
       ...usuarioLogado,
@@ -67,15 +67,21 @@ const App: React.FC = () => {
 
     setUsuario(usuarioCompleto);
 
-    // Carregar progresso do usuário
-    try {
-      const prog = await progressService.getProgressByUserId(usuarioCompleto.id);
-      if (prog) {
-        setProgresso(prog);
-        localStorage.setItem("userProgress", JSON.stringify(prog));
+    // Se já temos o progresso inicial (ex: registro), usar ele
+    if (initialProgress) {
+      setProgresso(initialProgress);
+      localStorage.setItem("userProgress", JSON.stringify(initialProgress));
+    } else {
+      // Carregar progresso do usuário (ex: login)
+      try {
+        const prog = await progressService.getProgressByUserId(usuarioCompleto.id);
+        if (prog) {
+          setProgresso(prog);
+          localStorage.setItem("userProgress", JSON.stringify(prog));
+        }
+      } catch (erro) {
+        console.error("[APP] Erro ao carregar progresso:", erro);
       }
-    } catch (erro) {
-      console.error("[APP] Erro ao carregar progresso:", erro);
     }
 
     if (usuarioCompleto.trilhaId) {
