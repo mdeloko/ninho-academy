@@ -49,7 +49,18 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess, o
 
       // Decodificar token para pegar user info
       const tokenPayload = JSON.parse(atob(dados.token.split(".")[1]));
-      onRegisterSuccess({ id: tokenPayload.id, email: tokenPayload.email, name: tokenPayload.name });
+      onRegisterSuccess({ 
+        id: tokenPayload.id, 
+        email: tokenPayload.email, 
+        nome: tokenPayload.name || nome,
+        xp: 0,
+        sequenciaDias: 1,
+        temESP32: false,
+        sincronizado: false,
+        trilhaId: undefined,
+        licoesConcluidas: [],
+        conquistas: []
+      });
     } catch (erro: any) {
       setErro(erro.message);
     } finally {

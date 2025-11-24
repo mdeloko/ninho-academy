@@ -38,7 +38,18 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onNavigate
 
       // Decodificar token para pegar user info
       const tokenPayload = JSON.parse(atob(dados.token.split(".")[1]));
-      onLoginSuccess({ id: tokenPayload.id, email: tokenPayload.email, name: tokenPayload.name });
+      onLoginSuccess({
+        id: tokenPayload.id,
+        email: tokenPayload.email,
+        nome: tokenPayload.name || "Usuário",
+        xp: 0,
+        sequenciaDias: 1,
+        temESP32: false,
+        sincronizado: false,
+        trilhaId: "TRACK_IOT",
+        licoesConcluidas: [],
+        conquistas: [],
+      });
     } catch (erro: any) {
       setErro(erro.message);
     } finally {

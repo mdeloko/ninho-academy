@@ -20,9 +20,19 @@ const App: React.FC = () => {
   const [mostrarSubiuNivel, setMostrarSubiuNivel] = useState(false);
 
   const aoAutenticarComSucesso = (usuarioLogado: User) => {
-    setUsuario(usuarioLogado);
+    // Garantir que o usuário tem todos os campos necessários
+    const usuarioCompleto: User = {
+      ...usuarioLogado,
+      licoesConcluidas: usuarioLogado.licoesConcluidas || [],
+      temESP32: usuarioLogado.temESP32 || false,
+      sincronizado: usuarioLogado.sincronizado || false,
+      trilhaId: usuarioLogado.trilhaId || undefined,
+      conquistas: usuarioLogado.conquistas || [],
+    };
 
-    if (usuarioLogado.trilhaId) {
+    setUsuario(usuarioCompleto);
+
+    if (usuarioCompleto.trilhaId) {
       setTela("DASHBOARD");
     } else {
       setTela("SETUP");
@@ -73,19 +83,7 @@ const App: React.FC = () => {
         : null
     );
 
-    try {
-      await fetch(ENDPOINTS.progresso.completarLicao, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: usuario.id,
-          lessonId: licaoAtiva.id,
-          xpEarned: xpGanho,
-        }),
-      });
-    } catch (erro) {
-      console.error("Erro ao completar lição:", erro);
-    }
+    // Removido: chamada API (mockar por enquanto)
 
     setMostrarSubiuNivel(true);
     setTimeout(() => setMostrarSubiuNivel(false), 3000);
