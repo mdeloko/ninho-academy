@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => ({
     host: true,
     port: 6001,
     fs: {
-      allow: ['.', '..'],
+      allow: [".", ".."],
     },
     proxy: {
       "/users": {
