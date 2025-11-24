@@ -21,6 +21,7 @@
 #include "hardware_map.h"
 #include "protocol.h"
 #include "user_id_store.h"
+#include "version.h"
 
 // Instâncias globais para gerenciar protocolo e armazenamento de ID
 UserIdStore userStore;
@@ -317,6 +318,15 @@ void loop() {
                     digitalRead(PIN_BUTTON),
                     analogRead(PIN_POT)
                 );
+            }
+
+            // --------------------------------------------------
+            // COMANDO: GET_VERSION
+            // --------------------------------------------------
+            // Retorna a versão atual do firmware
+            // Exemplo: {"type": "GET_VERSION"}
+            else if (cmd.type == "GET_VERSION") {
+                protocol.sendVersion(FIRMWARE_VERSION, FIRMWARE_BUILD, FIRMWARE_DATE);
             }
         }
         // Caso o JSON seja inválido, poderíamos enviar erro (comentado)

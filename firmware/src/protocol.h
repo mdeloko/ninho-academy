@@ -17,6 +17,7 @@ public:
     void sendTelemetry(const String& userId, const String& missionId, int ledState, int btnState, int potValue);
     void sendAck(const String& commandType);
     void sendError(const String& message);
+    void sendVersion(const String& version, int build, const String& date);
 };
 
 #endif

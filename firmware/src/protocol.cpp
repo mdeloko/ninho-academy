@@ -49,3 +49,13 @@ void Protocol::sendError(const String& message) {
     serializeJson(doc, Serial);
     Serial.println();
 }
+
+void Protocol::sendVersion(const String& version, int build, const String& date) {
+    StaticJsonDocument<256> doc;
+    doc["type"] = "VERSION";
+    doc["version"] = version;
+    doc["build"] = build;
+    doc["date"] = date;
+    serializeJson(doc, Serial);
+    Serial.println();
+}

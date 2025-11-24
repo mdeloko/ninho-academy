@@ -138,4 +138,5 @@
  .pio/libdeps/esp32dev/ArduinoJson/src/ArduinoJson.hpp \
  .pio/libdeps/esp32dev/ArduinoJson/src/ArduinoJson/Configuration.hpp \
  src/user_id_store.h \
- C:/Users/Thallys\ Correia/.platformio/packages/framework-arduinoespressif32/libraries/Preferences/src/Preferences.h
+ C:/Users/Thallys\ Correia/.platformio/packages/framework-arduinoespressif32/libraries/Preferences/src/Preferences.h \
+ src/version.h
