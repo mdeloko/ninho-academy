@@ -10,7 +10,7 @@ import { ConnectionGuide } from '../components/esp/ConnectionGuide';
 import { connectESP, formatMacAddr, sleep, supported } from '../lib/esptool';
 import { FIRMWARE_CONFIG } from '../config/firmware';
 
-type PageState = 'initial' | 'connecting' | 'connected' | 'flashing' | 'complete' | 'error' | 'guide';
+type PageState = 'initial' | 'checking_version' | 'connecting' | 'connected' | 'flashing' | 'complete' | 'error' | 'guide';
 
 export interface ESP32ConnectionPageProps {
   onComplete?: () => void;
@@ -31,7 +31,7 @@ export const ESP32ConnectionPage: React.FC<ESP32ConnectionPageProps> = ({ onComp
     setLogs((prev) => [...prev, msg]);
   };
 
-  // Conecta ao ESP32 (LÓGICA EXATA DO OPEN SOURCE - App.js linha 48)
+  // Conecta ao ESP32 - NOVO FLUXO: Verifica versão ANTES do hard reset
   const clickConnect = async () => {
     if (espStub) {
       await espStub.disconnect();
@@ -41,6 +41,39 @@ export const ESP32ConnectionPage: React.FC<ESP32ConnectionPageProps> = ({ onComp
     }
 
     try {
+      // PASSO 1: Verificar versão ANTES de fazer hard reset
+      setPageState('checking_version');
+      addOutput('Verificando versão do firmware...');
+
+      const version = await checkFirmwareVersion();
+
+      if (version) {
+        addOutput(`Versão detectada: ${version}`);
+        setCurrentVersion(version);
+
+        // Se a versão for igual, pergunta se quer regravar
+        if (version === FIRMWARE_CONFIG.version) {
+          const shouldReflash = confirm(
+            `✓ ESP32 já possui a versão ${version} do firmware.\n\nDeseja regravar mesmo assim?`
+          );
+
+          if (!shouldReflash) {
+            addOutput('Gravação cancelada. Firmware já está atualizado.');
+            setPageState('complete'); // Vai direto para tela de sucesso
+            return;
+          }
+
+          addOutput('Usuário optou por regravar o firmware.');
+        } else {
+          addOutput(`→ Nova versão disponível: ${FIRMWARE_CONFIG.version}`);
+          addOutput('Iniciando atualização...');
+        }
+      } else {
+        addOutput('→ Nenhuma versão detectada (firmware novo ou não gravado).');
+        addOutput('Prosseguindo com gravação...');
+      }
+
+      // PASSO 2: Agora sim conecta com ESPLoader (faz hard reset)
       setPageState('connecting');
       addOutput('Solicitando porta serial...');
 
@@ -75,51 +108,13 @@ export const ESP32ConnectionPage: React.FC<ESP32ConnectionPageProps> = ({ onComp
       const shortErrMsg = `${err}`.replace('Error: ', '');
       addOutput(`ERRO: ${shortErrMsg}`);
       setPageState('error');
-
-      if (esploader) {
-        try {
-          await esploader.port.close();
-          await esploader.disconnect();
-        } catch (e) {
-          console.error('Erro ao fechar porta:', e);
-        }
-      }
     }
   };
 
-  // Handler do botão "Gravar Firmware" - verifica versão antes
+  // Handler do botão "Gravar Firmware"
   const handleProgramFirmware = async () => {
-    // Primeiro, tenta verificar se já tem firmware e qual versão
-    addOutput('Verificando versão atual do firmware...');
-
-    try {
-      const version = await checkFirmwareVersion();
-
-      if (version) {
-        addOutput(`Versão detectada: ${version}`);
-        setCurrentVersion(version);
-
-        if (version === FIRMWARE_CONFIG.version) {
-          const shouldReflash = confirm(
-            `O ESP32 já possui a versão ${version} do firmware.\n\nDeseja regravar mesmo assim?`
-          );
-
-          if (!shouldReflash) {
-            addOutput('Gravação cancelada pelo usuário.');
-            return;
-          }
-        } else {
-          addOutput(`Nova versão disponível: ${FIRMWARE_CONFIG.version}`);
-        }
-      } else {
-        addOutput('Não foi possível detectar versão (firmware antigo ou não gravado).');
-        addOutput('Prosseguindo com a gravação...');
-      }
-    } catch (error) {
-      addOutput('Erro ao verificar versão, prosseguindo com gravação...');
-    }
-
-    // Prossegue com a gravação
+    // Prossegue direto com a gravação
+    // A verificação de versão será feita DEPOIS se o usuário quiser
     await programFirmware();
   };
 
@@ -344,6 +339,25 @@ export const ESP32ConnectionPage: React.FC<ESP32ConnectionPageProps> = ({ onComp
     );
   }
 
+  if (pageState === 'checking_version') {
+    return (
+      <div className="min-h-screen bg-brand-light flex items-center justify-center p-6">
+        <div className="max-w-2xl w-full space-y-6">
+          <div className="text-center">
+            <div className="text-6xl mb-4 animate-pulse">🔍</div>
+            <h1 className="text-3xl font-extrabold text-brand-brown">
+              Verificando Versão...
+            </h1>
+            <p className="text-gray-600 mt-2">
+              Selecione a porta do ESP32 no diálogo
+            </p>
+          </div>
+          <ConsoleOutput logs={logs} maxHeight="h-64" />
+        </div>
+      </div>
+    );
+  }
+
   if (pageState === 'connecting') {
     return (
       <div className="min-h-screen bg-brand-light flex items-center justify-center p-6">
@@ -354,7 +368,7 @@ export const ESP32ConnectionPage: React.FC<ESP32ConnectionPageProps> = ({ onComp
               Conectando...
             </h1>
             <p className="text-gray-600 mt-2">
-              Selecione a porta do ESP32 no diálogo
+              Preparando ESP32 para gravação
             </p>
           </div>
           <ConsoleOutput logs={logs} maxHeight="h-64" />
