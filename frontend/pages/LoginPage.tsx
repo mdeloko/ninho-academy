@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Button } from "../components/ui/Button";
+import { ENDPOINTS } from "../config/api";
 
 interface LoginPageProps {
   onLoginSuccess: (user: any) => void;
@@ -20,34 +21,24 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onNavigate
     setCarregando(true);
 
     try {
-      // MOCK: Simular login sem fazer chamada real
-      await new Promise((r) => setTimeout(r, 800)); // Simular delay
+      const resposta = await fetch(ENDPOINTS.auth.login, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password: senha }),
+      });
 
-      if (!email || !senha) {
-        throw new Error("Email e senha são obrigatórios");
+      const dados = await resposta.json();
+
+      if (!resposta.ok) {
+        throw new Error(dados.message || "Erro ao entrar.");
       }
 
-      // Mock de usuário
-      const mockToken = btoa(
-        JSON.stringify({
-          id: "mock-user-" + Math.random().toString(36).substr(2, 9),
-          email: email,
-          name: email.split("@")[0],
-          iat: Math.floor(Date.now() / 1000),
-        })
-      );
+      // Salvar token e usuário no localStorage para persistência
+      localStorage.setItem("token", dados.token);
 
-      // Separar token em 3 partes (simulando JWT)
-      const tokenFake = `header.${mockToken}.signature`;
-
-      console.log("[MOCK] Login bem-sucedido para:", email);
-
-      // Salvar token
-      localStorage.setItem("token", tokenFake);
-
-      // Decodificar token para pegar user info
-      const tokenPayload = JSON.parse(atob(tokenFake.split(".")[1]));
-      onLoginSuccess({
+      // Decodificar token JWT para pegar user info
+      const tokenPayload = JSON.parse(atob(dados.token.split(".")[1]));
+      const usuario = {
         id: tokenPayload.id,
         email: tokenPayload.email,
         nome: tokenPayload.name || "Usuário",
@@ -58,10 +49,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onNavigate
         trilhaId: "TRACK_IOT",
         licoesConcluidas: [],
         conquistas: [],
-      });
+      };
+
+      // Salvar dados do usuário também
+      localStorage.setItem("user", JSON.stringify(usuario));
+
+      console.log("[LOGIN] Autenticado:", email);
+      onLoginSuccess(usuario);
     } catch (erro: any) {
-      console.error("[MOCK] Erro no login:", erro);
-      setErro(erro.message || "Erro ao entrar.");
+      console.error("[LOGIN] Erro:", erro);
+      setErro(erro.message);
     } finally {
       setCarregando(false);
     }

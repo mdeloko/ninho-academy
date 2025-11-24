@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Button } from "../components/ui/Button";
+import { ENDPOINTS } from "../config/api";
 
 interface RegisterPageProps {
   onRegisterSuccess: (user: any) => void;
@@ -9,6 +10,7 @@ interface RegisterPageProps {
 export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess, onNavigateLogin }) => {
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
+  const [dataNascimento, setDataNascimento] = useState("");
   const [senha, setSenha] = useState("");
   const [confirmarSenha, setConfirmarSenha] = useState("");
   const [erro, setErro] = useState("");
@@ -28,33 +30,37 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess, o
       return;
     }
 
+    if (!dataNascimento) {
+      setErro("Data de nascimento é obrigatória.");
+      return;
+    }
+
     setCarregando(true);
 
     try {
-      // MOCK: Simular registro sem fazer chamada real
-      await new Promise((r) => setTimeout(r, 800)); // Simular delay
-
-      // Mock de token
-      const mockToken = btoa(
-        JSON.stringify({
-          id: "mock-user-" + Math.random().toString(36).substr(2, 9),
-          email: email,
+      const resposta = await fetch(ENDPOINTS.auth.registrar, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           name: nome,
-          iat: Math.floor(Date.now() / 1000),
-        })
-      );
+          email,
+          password: senha,
+          birth_date: dataNascimento,
+        }),
+      });
 
-      // Separar token em 3 partes (simulando JWT)
-      const tokenFake = `header.${mockToken}.signature`;
+      const dados = await resposta.json();
 
-      console.log("[MOCK] Cadastro bem-sucedido para:", email);
+      if (!resposta.ok) {
+        throw new Error(dados.message || "Erro ao criar conta.");
+      }
 
-      // Salvar token
-      localStorage.setItem("token", tokenFake);
+      // Salvar token e usuário no localStorage para persistência
+      localStorage.setItem("token", dados.token);
 
-      // Decodificar token para pegar user info
-      const tokenPayload = JSON.parse(atob(tokenFake.split(".")[1]));
-      onRegisterSuccess({
+      // Decodificar token JWT para pegar user info
+      const tokenPayload = JSON.parse(atob(dados.token.split(".")[1]));
+      const usuario = {
         id: tokenPayload.id,
         email: tokenPayload.email,
         nome: tokenPayload.name || nome,
@@ -65,9 +71,15 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess, o
         trilhaId: undefined,
         licoesConcluidas: [],
         conquistas: [],
-      });
+      };
+
+      // Salvar dados do usuário também
+      localStorage.setItem("user", JSON.stringify(usuario));
+
+      console.log("[REGISTER] Cadastro bem-sucedido:", email);
+      onRegisterSuccess(usuario);
     } catch (erro: any) {
-      console.error("[MOCK] Erro no cadastro:", erro);
+      console.error("[REGISTER] Erro:", erro);
       setErro(erro.message || "Erro ao criar conta.");
     } finally {
       setCarregando(false);
@@ -108,6 +120,17 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess, o
               placeholder="exemplo@email.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="block text-brand-brown font-bold text-sm mb-2 uppercase tracking-wide">Data de Nascimento</label>
+            <input
+              type="date"
+              required
+              className="w-full bg-gray-100 border-2 border-gray-200 rounded-xl px-4 py-3 font-bold text-brand-brown focus:outline-none focus:border-brand-yellow focus:bg-white transition-colors"
+              value={dataNascimento}
+              onChange={(e) => setDataNascimento(e.target.value)}
             />
           </div>
 

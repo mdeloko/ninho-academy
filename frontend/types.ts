@@ -55,6 +55,7 @@ export interface Trilha {
 export interface Usuario {
   id: string;
   nome: string;
+  email?: string;
   xp: number;
   sequenciaDias: number;
   temESP32: boolean;

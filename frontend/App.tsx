@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Navbar } from "./components/layout/Navbar";
 import { Dashboard } from "./pages/Dashboard";
 import { LessonRunner } from "./pages/LessonRunner";
@@ -18,6 +18,32 @@ const App: React.FC = () => {
   const [licaoAtiva, setLicaoAtiva] = useState<Lesson | null>(null);
   const [usuario, setUsuario] = useState<User | null>(null);
   const [mostrarSubiuNivel, setMostrarSubiuNivel] = useState(false);
+  const [carregando, setCarregando] = useState(true);
+
+  // Restaurar sessão ao montar o componente
+  useEffect(() => {
+    const usuarioSalvo = localStorage.getItem("user");
+    const tokenSalvo = localStorage.getItem("token");
+
+    if (usuarioSalvo && tokenSalvo) {
+      try {
+        const usuarioRestaurado = JSON.parse(usuarioSalvo);
+        setUsuario(usuarioRestaurado);
+
+        // Ir direto para dashboard se ele já tinha trilha selecionada
+        if (usuarioRestaurado.trilhaId) {
+          setTela("DASHBOARD");
+        } else {
+          setTela("SETUP");
+        }
+      } catch (erro) {
+        console.error("[APP] Erro ao restaurar sessão:", erro);
+        localStorage.removeItem("user");
+        localStorage.removeItem("token");
+      }
+    }
+    setCarregando(false);
+  }, []);
 
   const aoAutenticarComSucesso = (usuarioLogado: User) => {
     // Garantir que o usuário tem todos os campos necessários
@@ -91,6 +117,13 @@ const App: React.FC = () => {
     setLicaoAtiva(null);
   };
 
+  const aoSair = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    setUsuario(null);
+    setTela("LANDING");
+  };
+
   return (
     <div className="min-h-screen font-sans bg-brand-light">
       {tela === "LANDING" && <LandingPage onStart={() => setTela("AUTH_LOGIN")} />}
@@ -109,7 +142,7 @@ const App: React.FC = () => {
 
       {tela === "DASHBOARD" && usuario && (
         <>
-          <Navbar user={usuario} />
+          <Navbar user={usuario} onLogout={aoSair} />
           <Dashboard user={usuario} onLessonSelect={aoSelecionarLicao} />
         </>
       )}
