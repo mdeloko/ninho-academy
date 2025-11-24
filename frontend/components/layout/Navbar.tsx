@@ -6,11 +6,18 @@ import { Button } from "../ui/Button";
 interface PropriedadesNavbar {
   user: User;
   onLogout?: () => void;
+  onOpenESP32Setup?: () => void;
 }
 
-export const Navbar: React.FC<PropriedadesNavbar> = ({ user, onLogout }) => {
+export const Navbar: React.FC<PropriedadesNavbar> = ({ user, onLogout, onOpenESP32Setup }) => {
   const [statusSincronizacao, setStatusSincronizacao] = React.useState<"ocioso" | "sincronizando" | "sucesso" | "erro">("ocioso");
   const [mostrarMenu, setMostrarMenu] = React.useState(false);
+
+  const aoAbrirConfiguracaoESP = () => {
+    if (onOpenESP32Setup) {
+      onOpenESP32Setup();
+    }
+  };
 
   const aoSincronizarESP = async () => {
     if (!confirm("Conecte o ESP32 via USB. Deseja gravar seu ID nele agora?")) {
@@ -25,7 +32,15 @@ export const Navbar: React.FC<PropriedadesNavbar> = ({ user, onLogout }) => {
       setTimeout(() => setStatusSincronizacao("ocioso"), 3000);
     } catch (erro: any) {
       setStatusSincronizacao("erro");
-      alert("Erro ao sincronizar: " + (erro.message || "Erro desconhecido"));
+
+      // Se erro de conexão, redireciona para página de setup
+      if (erro.message.includes("conectado") && onOpenESP32Setup) {
+        if (confirm("Erro ao conectar. Deseja abrir o guia de conexão?")) {
+          onOpenESP32Setup();
+        }
+      } else {
+        alert("Erro ao sincronizar: " + (erro.message || "Erro desconhecido"));
+      }
 
       setTimeout(() => setStatusSincronizacao("ocioso"), 2000);
     }
@@ -47,21 +62,17 @@ export const Navbar: React.FC<PropriedadesNavbar> = ({ user, onLogout }) => {
         </div>
 
         <div className="flex items-center gap-4 relative">
-          {user.temESP32 && (
-            <Button
-              onClick={aoSincronizarESP}
-              disabled={statusSincronizacao === "sincronizando"}
-              variant={statusSincronizacao === "sucesso" ? "success" : statusSincronizacao === "erro" ? "danger" : statusSincronizacao === "sincronizando" ? "secondary" : "outline"}
-              size="sm"
-              className="hidden md:flex items-center gap-2 px-3 py-1 rounded-xl text-xs"
-              title="Gravar o ID no ESP32"
-            >
-              <span>{statusSincronizacao === "sincronizando" ? "⏳" : statusSincronizacao === "sucesso" ? "✅" : statusSincronizacao === "erro" ? "❌" : "🔄"}</span>
-              <span className="ml-1">
-                {statusSincronizacao === "sincronizando" ? "Sincronizando..." : statusSincronizacao === "sucesso" ? "Sucesso!" : statusSincronizacao === "erro" ? "Erro" : "Sincronizar ESP32"}
-              </span>
-            </Button>
-          )}
+          {/* Botão Conectar/Configurar ESP32 */}
+          <Button
+            onClick={aoAbrirConfiguracaoESP}
+            variant="outline"
+            size="sm"
+            className="hidden md:flex items-center gap-2 px-3 py-1 rounded-xl text-xs"
+            title="Conectar e configurar ESP32"
+          >
+            <span>📡</span>
+            <span className="ml-1">ESP32</span>
+          </Button>
 
           <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-xl bg-white border-2 border-gray-100">
             <span className="text-xl">🔌</span>
