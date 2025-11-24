@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Button } from '../components/ui/Button';
-import { ENDPOINTS } from '../config/api';
+import React, { useState } from "react";
+import { Button } from "../components/ui/Button";
+import { ENDPOINTS } from "../config/api";
 
 interface RegisterPageProps {
   onRegisterSuccess: (user: any) => void;
@@ -8,24 +8,24 @@ interface RegisterPageProps {
 }
 
 export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess, onNavigateLogin }) => {
-  const [nome, setNome] = useState('');
-  const [email, setEmail] = useState('');
-  const [senha, setSenha] = useState('');
-  const [confirmarSenha, setConfirmarSenha] = useState('');
-  const [erro, setErro] = useState('');
+  const [nome, setNome] = useState("");
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
+  const [confirmarSenha, setConfirmarSenha] = useState("");
+  const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(false);
 
   const aoEnviar = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErro('');
+    setErro("");
 
     if (senha !== confirmarSenha) {
-      setErro('As senhas não coincidem.');
+      setErro("As senhas não coincidem.");
       return;
     }
 
     if (senha.length < 6) {
-      setErro('A senha deve ter pelo menos 6 caracteres.');
+      setErro("A senha deve ter pelo menos 6 caracteres.");
       return;
     }
 
@@ -33,22 +33,22 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess, o
 
     try {
       const resposta = await fetch(ENDPOINTS.auth.registrar, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: nome, email, password: senha, birthDate: '2000-01-01' }),
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: nome, email, password: senha, birthDate: "2000-01-01" }),
       });
 
       const dados = await resposta.json();
 
       if (!resposta.ok) {
-        throw new Error(dados.message || 'Erro ao criar conta.');
+        throw new Error(dados.message || "Erro ao criar conta.");
       }
 
       // Salvar token
-      localStorage.setItem('token', dados.token);
-      
+      localStorage.setItem("token", dados.token);
+
       // Decodificar token para pegar user info
-      const tokenPayload = JSON.parse(atob(dados.token.split('.')[1]));
+      const tokenPayload = JSON.parse(atob(dados.token.split(".")[1]));
       onRegisterSuccess({ id: tokenPayload.id, email: tokenPayload.email, name: tokenPayload.name });
     } catch (erro: any) {
       setErro(erro.message);
@@ -122,7 +122,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess, o
 
           <div className="pt-4">
             <Button fullWidth size="lg" disabled={carregando} variant="success">
-              {carregando ? 'Criando...' : 'CADASTRAR'}
+              {carregando ? "Criando..." : "CADASTRAR"}
             </Button>
           </div>
         </form>

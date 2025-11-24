@@ -34,10 +34,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onNavigate
       }
 
       // Salvar token
-      localStorage.setItem('token', dados.token);
-      
+      localStorage.setItem("token", dados.token);
+
       // Decodificar token para pegar user info
-      const tokenPayload = JSON.parse(atob(dados.token.split('.')[1]));
+      const tokenPayload = JSON.parse(atob(dados.token.split(".")[1]));
       onLoginSuccess({ id: tokenPayload.id, email: tokenPayload.email, name: tokenPayload.name });
     } catch (erro: any) {
       setErro(erro.message);
