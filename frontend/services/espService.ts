@@ -3,22 +3,22 @@
  * Usa a mesma lógica do open source, mas para comunicação serial após flash
  */
 
-import { connectESP, formatMacAddr } from '../lib/esptool';
-import type { EspTelemetry, ConnectionStatus } from '../types';
-import { missions } from '../data/missions';
+import { connectESP, formatMacAddr } from "../lib/esptool";
+import type { EspTelemetry, ConnectionStatus } from "../types";
+import { missions } from "../data/missions";
 
 class ESPService {
   private port: any = null;
   private reader: ReadableStreamDefaultReader | null = null;
   private writer: WritableStreamDefaultWriter | null = null;
-  private _status: ConnectionStatus = 'disconnected';
+  private _status: ConnectionStatus = "disconnected";
 
   /**
    * Conecta ao ESP32 via Serial (para comunicação, não flash)
    */
   async conectar(): Promise<void> {
     if (this.port) {
-      throw new Error('ESP32 já está conectado.');
+      throw new Error("ESP32 já está conectado.");
     }
 
     try {
@@ -29,7 +29,7 @@ class ESPService {
         baudRate: 115200,
       });
 
-      this._status = 'connected';
+      this._status = "connected";
 
       // Configura reader/writer para comunicação
       const decoder = new TextDecoderStream();
@@ -40,9 +40,48 @@ class ESPService {
       const outputDone = encoder.readable.pipeTo(this.port.writable);
       this.writer = encoder.writable.getWriter();
 
+      // Inicia leitura em background
+      this.lerSerial();
     } catch (erro) {
-      this._status = 'error';
+      this._status = "error";
       throw new Error(`Falha ao conectar: ${erro}`);
+    }
+  }
+
+  /**
+   * Loop de leitura da porta serial
+   */
+  private async lerSerial() {
+    while (this.port && this.port.readable && this.reader) {
+      try {
+        const { value, done } = await this.reader.read();
+        if (done) {
+          // Reader foi cancelado
+          break;
+        }
+        if (value) {
+          // Processa dados recebidos (pode ser JSON ou logs)
+          console.log("[ESP32 RX]", value);
+
+          // Tenta parsear JSON se for uma linha completa
+          // Nota: Em produção, precisaria de um buffer para juntar chunks
+          try {
+            const lines = value.split("\n");
+            for (const line of lines) {
+              if (line.trim().startsWith("{")) {
+                const data = JSON.parse(line);
+                console.log("[ESP32 JSON]", data);
+                // Aqui você pode disparar eventos ou atualizar estado global
+              }
+            }
+          } catch (e) {
+            // Ignora erros de parse, pode ser apenas log de debug
+          }
+        }
+      } catch (e) {
+        console.error("[ESP32 Error]", e);
+        break;
+      }
     }
   }
 
@@ -65,7 +104,7 @@ class ESPService {
       this.port = null;
     }
 
-    this._status = 'disconnected';
+    this._status = "disconnected";
   }
 
   /**
@@ -73,10 +112,10 @@ class ESPService {
    */
   private async enviarJSON(comando: any): Promise<void> {
     if (!this.writer) {
-      throw new Error('ESP32 não conectado.');
+      throw new Error("ESP32 não conectado.");
     }
 
-    const json = JSON.stringify(comando) + '\n';
+    const json = JSON.stringify(comando) + "\n";
     await this.writer.write(json);
   }
 
@@ -84,12 +123,18 @@ class ESPService {
    * Define identidade do usuário no ESP32
    */
   async definirIdentidade(userId: string): Promise<void> {
-    await this.conectar();
+    // Se não estiver conectado, conecta
+    if (!this.isConnected()) {
+      await this.conectar();
+    }
+
     await this.enviarJSON({
-      type: 'SET_ID',
+      type: "SET_ID",
       userId: userId,
     });
-    await this.desconectar();
+
+    // NÃO desconecta automaticamente para manter o fluxo
+    // await this.desconectar();
   }
 
   /**
@@ -105,7 +150,7 @@ class ESPService {
     const firmwareCommand = mission.practice.firmwareCommand;
 
     await this.enviarJSON({
-      type: 'SET_MISSION',
+      type: "SET_MISSION",
       missionId: firmwareCommand,
     });
   }
@@ -114,7 +159,7 @@ class ESPService {
    * Solicita status/telemetria imediata
    */
   async solicitarStatus(): Promise<void> {
-    await this.enviarJSON({ type: 'GET_STATUS' });
+    await this.enviarJSON({ type: "GET_STATUS" });
   }
 
   /**
@@ -128,7 +173,7 @@ class ESPService {
    * Verifica se está conectado
    */
   isConnected(): boolean {
-    return this._status === 'connected' && this.port !== null;
+    return this._status === "connected" && this.port !== null;
   }
 }
 
