@@ -7,7 +7,7 @@ import React, { useState } from 'react';
 import { Button } from '../components/ui/Button';
 import { ConsoleOutput } from '../components/esp/ConsoleOutput';
 import { ConnectionGuide } from '../components/esp/ConnectionGuide';
-import { connectESP, formatMacAddr, sleep, supported } from '../lib/esptool';
+import { connectESP, connectESPWithPort, formatMacAddr, sleep, supported } from '../lib/esptool';
 import { FIRMWARE_CONFIG } from '../config/firmware';
 
 type PageState = 'initial' | 'checking_version' | 'connecting' | 'connected' | 'flashing' | 'complete' | 'error' | 'guide';
@@ -31,7 +31,7 @@ export const ESP32ConnectionPage: React.FC<ESP32ConnectionPageProps> = ({ onComp
     setLogs((prev) => [...prev, msg]);
   };
 
-  // Conecta ao ESP32 - NOVO FLUXO: Verifica versão ANTES do hard reset
+  // Conecta ao ESP32 - NOVO FLUXO: Solicita porta UMA VEZ e verifica versão
   const clickConnect = async () => {
     if (espStub) {
       await espStub.disconnect();
@@ -40,24 +40,25 @@ export const ESP32ConnectionPage: React.FC<ESP32ConnectionPageProps> = ({ onComp
       return;
     }
 
+    let selectedPort: any = null;
+
     try {
-      // PASSO 1: Verificar versão ANTES de fazer hard reset
+      // PASSO 1: Solicita a porta UMA ÚNICA VEZ
       setPageState('checking_version');
+      addOutput('Solicitando porta serial...');
+
+      selectedPort = await (navigator as any).serial.requestPort();
+
+      if (!selectedPort) {
+        addOutput('Nenhuma porta selecionada.');
+        setPageState('initial');
+        return;
+      }
+
+      // PASSO 2: Verifica versão ANTES de fazer hard reset
       addOutput('Verificando versão do firmware...');
 
-      let version: string | null = null;
-
-      try {
-        version = await checkFirmwareVersion();
-      } catch (error: any) {
-        // Se usuário cancelou o diálogo, volta para tela inicial
-        if (error.name === 'NotFoundError') {
-          addOutput('Seleção de porta cancelada.');
-          setPageState('initial');
-          return;
-        }
-        throw error;
-      }
+      const version = await checkFirmwareVersionWithPort(selectedPort);
 
       if (version) {
         addOutput(`Versão detectada: ${version}`);
@@ -85,11 +86,11 @@ export const ESP32ConnectionPage: React.FC<ESP32ConnectionPageProps> = ({ onComp
         addOutput('Prosseguindo com gravação...');
       }
 
-      // PASSO 2: Agora sim conecta com ESPLoader (faz hard reset)
+      // PASSO 3: Agora sim conecta com ESPLoader usando a MESMA porta (faz hard reset)
       setPageState('connecting');
-      addOutput('Solicitando porta serial...');
+      addOutput('Preparando ESP32 para gravação...');
 
-      const esploader = await connectESP({
+      const esploader = await connectESPWithPort(selectedPort, {
         log: (...args) => addOutput(`${args[0]}`),
         debug: (...args) => console.debug(...args),
         error: (...args) => console.error(...args),
@@ -224,18 +225,16 @@ export const ESP32ConnectionPage: React.FC<ESP32ConnectionPageProps> = ({ onComp
     setPageState('guide');
   };
 
-  // Verifica versão do firmware via Serial (após já estar gravado e rodando)
-  const checkFirmwareVersion = async (): Promise<string | null> => {
-    let port: any = null;
+  // Verifica versão do firmware usando uma porta já selecionada
+  const checkFirmwareVersionWithPort = async (port: any): Promise<string | null> => {
     let reader: ReadableStreamDefaultReader | null = null;
     let writer: WritableStreamDefaultWriter | null = null;
 
     try {
-      // Solicita porta serial
-      port = await (navigator as any).serial.requestPort();
-
-      // Tenta abrir a porta
-      await port.open({ baudRate: 115200 });
+      // Abre a porta (se já não estiver aberta)
+      if (!port.readable) {
+        await port.open({ baudRate: 115200 });
+      }
 
       // Configura reader/writer
       const textDecoder = new TextDecoderStream();

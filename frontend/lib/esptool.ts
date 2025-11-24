@@ -30,6 +30,28 @@ export const connectESP = async (config: LogConfig) => {
 };
 
 /**
+ * Conecta ao ESP usando uma porta já selecionada
+ */
+export const connectESPWithPort = async (port: any, config: LogConfig) => {
+  const esploaderMod = await window.esptoolPackage;
+
+  config.log('Connecting...');
+
+  // Se a porta já estiver aberta, fecha primeiro
+  if (port.readable) {
+    await port.close();
+  }
+
+  await port.open({
+    baudRate: config.baudRate
+  });
+
+  config.log('Connected successfully.');
+
+  return new esploaderMod.ESPLoader(port, config);
+};
+
+/**
  * Formata MAC Address - EXATO DO OPEN SOURCE
  */
 export const formatMacAddr = (macAddr: number[]): string => {
