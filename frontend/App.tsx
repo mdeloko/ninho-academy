@@ -240,7 +240,7 @@ const App: React.FC = () => {
       {tela === "DASHBOARD" && usuario && (
         <>
           <Navbar user={usuario} onLogout={aoSair} />
-          <Dashboard user={usuario} onLessonSelect={aoSelecionarLicao} />
+          <Dashboard user={usuario} currentLevel={progresso?.level || 0} onLessonSelect={aoSelecionarLicao} />
         </>
       )}
 

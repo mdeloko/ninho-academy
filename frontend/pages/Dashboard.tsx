@@ -3,33 +3,23 @@ import { UnitCard } from "../components/game/UnitCard";
 import { LessonNode } from "../components/game/LessonNode";
 import { Lesson, Track, User, LessonType } from "../types";
 import { missions } from "../data/missions";
-import { progressService } from "../services/progressService";
 
 interface DashboardProps {
   user: User;
+  currentLevel: number;
   onLessonSelect: (lesson: Lesson) => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ user, onLessonSelect }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ user, currentLevel, onLessonSelect }) => {
   const [trilha, setTrilha] = useState<Track | null>(null);
   const [carregando, setCarregando] = useState(true);
-  const [userLevel, setUserLevel] = useState(0);
 
   useEffect(() => {
-    // Carregar level do progresso
-    const carregarProgresso = async () => {
-      const progresso = await progressService.getProgressByUserId(user.id);
-      if (progresso) {
-        setUserLevel(progresso.level);
-      }
-    };
-    carregarProgresso();
-
     // Map missions to Track structure
     const mappedLessons: Lesson[] = missions.map((m, index) => {
       // Level = número de missões completadas
       // Pode fazer a missão se seu level >= index (0-indexed)
-      const isLocked = userLevel < index;
+      const isLocked = currentLevel < index;
 
       return {
         id: m.id,
@@ -62,7 +52,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLessonSelect }) =>
 
     setTrilha(track);
     setCarregando(false);
-  }, [user.licoesConcluidas]);
+  }, [user.licoesConcluidas, currentLevel]);
 
   if (carregando) {
     return <div className="p-10 text-center font-bold text-brand-brown animate-pulse">Carregando mapa...</div>;
