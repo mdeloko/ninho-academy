@@ -229,6 +229,8 @@ export const ESP32ConnectionPage: React.FC<ESP32ConnectionPageProps> = ({ onComp
   const checkFirmwareVersionWithPort = async (port: any): Promise<string | null> => {
     let reader: ReadableStreamDefaultReader | null = null;
     let writer: WritableStreamDefaultWriter | null = null;
+    let readableStreamClosed: Promise<void> | null = null;
+    let writableStreamClosed: Promise<void> | null = null;
 
     try {
       // Abre a porta (se já não estiver aberta)
@@ -236,13 +238,13 @@ export const ESP32ConnectionPage: React.FC<ESP32ConnectionPageProps> = ({ onComp
         await port.open({ baudRate: 115200 });
       }
 
-      // Configura reader/writer
+      // Configura reader/writer com pipeTo
       const textDecoder = new TextDecoderStream();
-      const readableStreamClosed = port.readable.pipeTo(textDecoder.writable);
+      readableStreamClosed = port.readable.pipeTo(textDecoder.writable);
       reader = textDecoder.readable.getReader();
 
       const textEncoder = new TextEncoderStream();
-      const writableStreamClosed = textEncoder.readable.pipeTo(port.writable);
+      writableStreamClosed = textEncoder.readable.pipeTo(port.writable);
       writer = textEncoder.writable.getWriter();
 
       // Envia comando GET_VERSION
@@ -283,24 +285,22 @@ export const ESP32ConnectionPage: React.FC<ESP32ConnectionPageProps> = ({ onComp
       return version;
 
     } catch (error: any) {
-      // Se o usuário cancelou a seleção de porta
-      if (error.name === 'NotFoundError') {
-        throw error; // Re-lança para ser tratado no clickConnect
-      }
-
       console.error('Erro ao verificar versão:', error);
       return null;
 
     } finally {
-      // SEMPRE fecha a porta, mesmo se houver erro
+      // ORDEM IMPORTANTE: Liberar readers/writers ANTES de fechar a porta
+
+      // 1. Cancelar reader
       try {
         if (reader) {
           await reader.cancel();
         }
       } catch (e) {
-        console.warn('Erro ao fechar reader:', e);
+        console.warn('Erro ao cancelar reader:', e);
       }
 
+      // 2. Fechar writer
       try {
         if (writer) {
           await writer.close();
@@ -309,8 +309,26 @@ export const ESP32ConnectionPage: React.FC<ESP32ConnectionPageProps> = ({ onComp
         console.warn('Erro ao fechar writer:', e);
       }
 
+      // 3. Aguardar pipes terminarem
       try {
-        if (port) {
+        if (readableStreamClosed) {
+          await readableStreamClosed.catch(() => {}); // Ignora erros de cancelamento
+        }
+      } catch (e) {
+        // Ignora
+      }
+
+      try {
+        if (writableStreamClosed) {
+          await writableStreamClosed.catch(() => {}); // Ignora erros de fechamento
+        }
+      } catch (e) {
+        // Ignora
+      }
+
+      // 4. AGORA SIM fechar a porta (após liberar todos os streams)
+      try {
+        if (port && port.readable === null && port.writable === null) {
           await port.close();
         }
       } catch (e) {
