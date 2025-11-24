@@ -9,14 +9,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "express": "^5.1.0",
-    "cors": "^2.8.5",
-    "sqlite3": "^5.1.7",
-    "sqlite": "^5.1.1",
-    "zod": "^4.1.12",
-    "@prisma/client": "^7.0.0"
+    "sqlite3": "^5.1.7"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
