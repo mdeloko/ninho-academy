@@ -158,44 +158,59 @@ export const ESP32ConnectionPage: React.FC<ESP32ConnectionPageProps> = ({ onComp
     };
 
     try {
-      // Carrega firmware
-      addOutput('Carregando firmware...');
-      const response = await fetch('/firmware/ninho-academy.bin');
-
-      if (!response.ok) {
-        throw new Error('Firmware não encontrado em /firmware/ninho-academy.bin');
-      }
-
-      const firmwareBlob = await response.blob();
-      const contents = await toArrayBuffer(firmwareBlob);
-
-      addOutput(`Firmware carregado: ${contents.byteLength} bytes`);
-
-      // Apaga flash (opcional mas recomendado)
+      // Apaga flash PRIMEIRO
       addOutput('Apagando flash...');
       await espStub.eraseFlash();
       addOutput('Flash apagado!');
 
-      // Grava firmware (EXATO DO OPEN SOURCE - linha 181)
-      addOutput('Gravando firmware...');
+      // Arquivos a gravar (NA ORDEM CORRETA - bootloader, partitions, firmware)
+      const filesToFlash = [
+        { path: '/firmware/bootloader.bin', offset: 0x1000, name: 'Bootloader' },
+        { path: '/firmware/partitions.bin', offset: 0x8000, name: 'Partições' },
+        { path: '/firmware/ninho-academy.bin', offset: 0x10000, name: 'Firmware' }
+      ];
 
-      await espStub.flashData(
-        contents,
-        (bytesWritten: number, totalBytes: number) => {
-          const progress = (bytesWritten / totalBytes);
-          const percentage = Math.floor(progress * 100);
-          setFlashProgress(percentage);
+      let totalProgress = 0;
+      const progressPerFile = 100 / filesToFlash.length;
 
-          if (percentage % 10 === 0) {
-            addOutput(`Progresso: ${percentage}%`);
-          }
-        },
-        0x10000 // Offset padrão para firmware ESP32
-      );
+      // Grava cada arquivo
+      for (let i = 0; i < filesToFlash.length; i++) {
+        const file = filesToFlash[i];
 
-      await sleep(100);
+        addOutput(`Carregando ${file.name}...`);
+        const response = await fetch(file.path);
 
-      addOutput('Firmware gravado com sucesso!');
+        if (!response.ok) {
+          throw new Error(`${file.name} não encontrado em ${file.path}`);
+        }
+
+        const blob = await response.blob();
+        const contents = await toArrayBuffer(blob);
+
+        addOutput(`Gravando ${file.name} (${contents.byteLength} bytes no offset 0x${file.offset.toString(16)})...`);
+
+        await espStub.flashData(
+          contents,
+          (bytesWritten: number, totalBytes: number) => {
+            const fileProgress = (bytesWritten / totalBytes);
+            const overallProgress = totalProgress + (fileProgress * progressPerFile);
+            const percentage = Math.floor(overallProgress);
+            setFlashProgress(percentage);
+
+            if (percentage % 10 === 0) {
+              addOutput(`Progresso geral: ${percentage}%`);
+            }
+          },
+          file.offset
+        );
+
+        totalProgress += progressPerFile;
+        setFlashProgress(Math.floor(totalProgress));
+        addOutput(`✓ ${file.name} gravado!`);
+        await sleep(100);
+      }
+
+      addOutput('Firmware completo gravado com sucesso!');
       addOutput('Para executar o novo firmware, pressione o botão RESET no ESP32.');
 
       // SEGUINDO O OPEN SOURCE: NÃO faz hard reset automático
