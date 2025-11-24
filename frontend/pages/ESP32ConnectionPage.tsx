@@ -196,32 +196,10 @@ export const ESP32ConnectionPage: React.FC<ESP32ConnectionPageProps> = ({ onComp
       await sleep(100);
 
       addOutput('Firmware gravado com sucesso!');
-      addOutput('Reiniciando ESP32...');
+      addOutput('Para executar o novo firmware, pressione o botão RESET no ESP32.');
 
-      // Faz hard reset para o firmware começar a rodar
-      try {
-        await espStub.hardReset();
-        addOutput('ESP32 reiniciado. Firmware está rodando.');
-
-        // Aguarda o firmware inicializar (1 segundo)
-        await sleep(1000);
-
-        // Desconecta do modo ESPLoader
-        await espStub.disconnect();
-
-        // Fecha a porta do ESPLoader
-        await espStub.port.close();
-
-        addOutput('Modo de gravação encerrado.');
-
-        // Limpa o espStub
-        setEspStub(undefined);
-
-        // Agora a porta está livre para reconectar em modo normal nas missões
-
-      } catch (e) {
-        console.warn('Erro ao finalizar:', e);
-      }
+      // SEGUINDO O OPEN SOURCE: NÃO faz hard reset automático
+      // O usuário deve resetar manualmente pressionando o botão no ESP32
 
       setPageState('complete');
     } catch (e: any) {
@@ -254,6 +232,9 @@ export const ESP32ConnectionPage: React.FC<ESP32ConnectionPageProps> = ({ onComp
         await port.open({ baudRate: 115200 });
       }
 
+      // Aguarda um pouco para a porta estabilizar
+      await sleep(500);
+
       // Configura reader/writer com pipeTo
       const textDecoder = new TextDecoderStream();
       readableStreamClosed = port.readable.pipeTo(textDecoder.writable);
@@ -263,39 +244,68 @@ export const ESP32ConnectionPage: React.FC<ESP32ConnectionPageProps> = ({ onComp
       writableStreamClosed = textEncoder.readable.pipeTo(port.writable);
       writer = textEncoder.writable.getWriter();
 
-      // Envia comando GET_VERSION
-      await writer.write(JSON.stringify({ type: 'GET_VERSION' }) + '\n');
-
-      // Aguarda resposta com timeout
       let version: string | null = null;
-      const startTime = Date.now();
-      const TIMEOUT_MS = 2000;
+      const MAX_ATTEMPTS = 3; // Tenta 3 vezes
 
-      while (Date.now() - startTime < TIMEOUT_MS) {
-        const readPromise = reader.read();
-        const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve({ value: null, done: true }), 500));
+      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+        addOutput(`Tentativa ${attempt}/${MAX_ATTEMPTS} de verificar versão...`);
 
-        const result: any = await Promise.race([readPromise, timeoutPromise]);
+        // Envia comando GET_VERSION
+        await writer.write(JSON.stringify({ type: 'GET_VERSION' }) + '\n');
 
-        if (result.done || !result.value) break;
+        // Aguarda resposta com timeout maior
+        const startTime = Date.now();
+        const TIMEOUT_MS = 3000; // 3 segundos por tentativa
 
-        // Processa linhas recebidas
-        const lines = result.value.split('\n');
-        for (const line of lines) {
-          if (line.trim()) {
-            try {
-              const response = JSON.parse(line);
-              if (response.type === 'VERSION') {
-                version = response.version;
-                break;
+        while (Date.now() - startTime < TIMEOUT_MS) {
+          const readPromise = reader.read();
+          const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve({ value: null, done: true }), 500));
+
+          const result: any = await Promise.race([readPromise, timeoutPromise]);
+
+          if (result.done || !result.value) {
+            await sleep(100); // Pequena pausa antes de tentar ler novamente
+            continue;
+          }
+
+          // Log do que recebemos (para debug)
+          const receivedData = result.value;
+          console.log('[DEBUG] Recebido:', receivedData);
+
+          // Processa linhas recebidas
+          const lines = receivedData.split('\n');
+          for (const line of lines) {
+            if (line.trim()) {
+              try {
+                const response = JSON.parse(line);
+                console.log('[DEBUG] JSON parseado:', response);
+
+                if (response.type === 'VERSION') {
+                  version = response.version;
+                  addOutput(`✓ Versão encontrada: ${version}`);
+                  break;
+                }
+              } catch (e) {
+                // Não é JSON - pode ser mensagem de inicialização do ESP32
+                console.log('[DEBUG] Linha não-JSON:', line);
               }
-            } catch (e) {
-              // Ignora linhas que não são JSON válido
             }
           }
+
+          if (version) break;
         }
 
         if (version) break;
+
+        // Se não encontrou, aguarda um pouco antes da próxima tentativa
+        if (attempt < MAX_ATTEMPTS) {
+          addOutput('Aguardando firmware inicializar...');
+          await sleep(1000);
+        }
+      }
+
+      if (!version) {
+        addOutput('Não foi possível detectar versão após 3 tentativas.');
       }
 
       return version;
@@ -527,13 +537,19 @@ export const ESP32ConnectionPage: React.FC<ESP32ConnectionPageProps> = ({ onComp
           <h1 className="text-3xl font-extrabold text-brand-brown">
             Firmware Gravado!
           </h1>
-          <p className="text-gray-600">
-            Seu ESP32 está pronto para as missões práticas.
-          </p>
+
+          <div className="bg-yellow-50 p-6 rounded-2xl border-2 border-yellow-200 space-y-3">
+            <p className="text-sm font-bold text-yellow-900">
+              📌 IMPORTANTE: Pressione o botão RESET no ESP32
+            </p>
+            <p className="text-xs text-yellow-800">
+              O botão RESET fica ao lado da porta USB. Pressione-o para iniciar o firmware.
+            </p>
+          </div>
 
           <div className="bg-green-50 p-6 rounded-2xl border-2 border-green-100">
             <p className="text-sm text-green-900">
-              ✅ Sucesso! Você já pode começar a fazer as missões práticas.
+              ✅ Após resetar, você já pode começar a fazer as missões práticas!
             </p>
           </div>
 
