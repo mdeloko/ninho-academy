@@ -34,11 +34,11 @@ export const ConnectionGuide: React.FC<ConnectionGuideProps> = ({ onRetry, onClo
           </div>
 
           {/* Imagem ou placeholder */}
-          <div className="bg-white rounded-2xl border-2 border-gray-200 overflow-hidden">
+          <div className="bg-white rounded-2xl border-2 border-gray-200 overflow-hidden flex justify-center">
             <img
               src={caboConectadoImg}
               alt="Cabo USB conectado ao ESP32"
-              className="w-full h-auto"
+              className="h-64 w-auto object-contain"
               onError={(e) => {
                 // Fallback caso a imagem não exista
                 e.currentTarget.style.display = "none";
@@ -61,11 +61,11 @@ export const ConnectionGuide: React.FC<ConnectionGuideProps> = ({ onRetry, onClo
             <h3 className="text-xl font-bold text-brand-brown">Verifique se o LED acendeu</h3>
           </div>
 
-          <div className="bg-white rounded-2xl border-2 border-gray-200 overflow-hidden">
+          <div className="bg-white rounded-2xl border-2 border-gray-200 overflow-hidden flex justify-center">
             <img
               src={caboConectadoLigadoImg}
               alt="LED do ESP32 aceso"
-              className="w-full h-auto"
+              className="h-64 w-auto object-contain"
               onError={(e) => {
                 e.currentTarget.style.display = "none";
                 e.currentTarget.nextElementSibling?.classList.remove("hidden");
@@ -95,7 +95,7 @@ export const ConnectionGuide: React.FC<ConnectionGuideProps> = ({ onRetry, onClo
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* CH340G */}
             <div className="bg-white p-6 rounded-2xl border-2 border-gray-200 space-y-3">
-              <div className="h-32 bg-gray-100 rounded-xl overflow-hidden flex items-center justify-center">
+              <div className="h-48 bg-gray-100 rounded-xl overflow-hidden flex items-center justify-center">
                 <img
                   src={ch340gImg}
                   alt="Chip CH340G"
@@ -117,7 +117,7 @@ export const ConnectionGuide: React.FC<ConnectionGuideProps> = ({ onRetry, onClo
 
             {/* CP210X */}
             <div className="bg-white p-6 rounded-2xl border-2 border-gray-200 space-y-3">
-              <div className="h-32 bg-gray-100 rounded-xl overflow-hidden flex items-center justify-center">
+              <div className="h-48 bg-gray-100 rounded-xl overflow-hidden flex items-center justify-center">
                 <img
                   src={cp210xImg}
                   alt="Chip CP210X"
