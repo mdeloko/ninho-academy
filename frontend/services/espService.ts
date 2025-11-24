@@ -1,89 +1,165 @@
-import { EspTelemetry, ConnectionStatus } from "../types";
+/**
+ * ESP Service - Serviço singleton para comunicação com ESP32
+ * Usa ESPConnectionManager internamente
+ */
 
-// ===== MOCK SERVICE - Sem Web Serial =====
-// Todo integrado manualmente após
+import { ESPConnectionManager } from './espConnectionManager';
+import type { EspTelemetry, ConnectionStatus } from '../types';
+import { missions } from '../data/missions';
 
-let aoReceberTelemetria: ((dados: EspTelemetry) => void) | null = null;
-let aoMudarStatus: ((status: ConnectionStatus) => void) | null = null;
-let isConnectedMock = false;
+class ESPService {
+  private connectionManager: ESPConnectionManager | null = null;
+  private _onTelemetry: ((telemetry: EspTelemetry) => void) | null = null;
+  private _onStatusChange: ((status: ConnectionStatus) => void) | null = null;
+  private _onLog: ((message: string, level?: 'info' | 'error' | 'debug') => void) | null = null;
 
-const atualizarStatus = (status: ConnectionStatus) => {
-  console.log("[MOCK ESP32] Status:", status);
-  if (aoMudarStatus) aoMudarStatus(status);
-};
-
-const conectar = async () => {
-  console.log("[MOCK ESP32] Conectando...");
-  atualizarStatus("connecting");
-
-  // Simular delay de conexão
-  await new Promise((r) => setTimeout(r, 800));
-
-  isConnectedMock = true;
-  atualizarStatus("connected");
-  console.log("[MOCK ESP32] Conectado com sucesso!");
-};
-
-const desconectar = async () => {
-  console.log("[MOCK ESP32] Desconectando...");
-  isConnectedMock = false;
-  atualizarStatus("disconnected");
-  console.log("[MOCK ESP32] Desconectado!");
-};
-
-const enviarComando = async (comando: string, payload: any) => {
-  if (!isConnectedMock) {
-    console.warn("[MOCK ESP32] Não conectado. Comando ignorado:", comando);
-    return;
+  constructor() {
+    this.initializeManager();
   }
 
-  console.log("[MOCK ESP32] Comando enviado:", { tipo: comando, ...payload });
-
-  // Simular resposta com telemetria aleatória
-  if (comando === "SET_MISSION") {
-    setTimeout(() => {
-      if (aoReceberTelemetria) {
-        aoReceberTelemetria({
-          type: "TELEMETRY",
-          userId: "mock-user",
-          deviceId: "mock-device",
-          timestamp: Date.now(),
-          readings: {
-            gpio: {
-              led: { mode: "output", value: Math.random() > 0.5 ? 1 : 0 },
-              btn: { mode: "input", value: Math.random() > 0.7 ? 1 : 0 },
-            },
-            adc: {
-              pot: Math.floor(Math.random() * 1024),
-            },
-          },
-        } as EspTelemetry);
-      }
-    }, 1000);
-  }
-};
-
-const definirIdentidade = async (userId: string): Promise<void> => {
-  console.log("[MOCK ESP32] Definindo identidade:", userId);
-
-  if (!isConnectedMock) {
-    await conectar();
+  /**
+   * Inicializa o Connection Manager com callbacks
+   */
+  private initializeManager(): void {
+    this.connectionManager = new ESPConnectionManager({
+      onStatusChange: (status) => {
+        if (this._onStatusChange) {
+          this._onStatusChange(status);
+        }
+      },
+      onTelemetry: (telemetry) => {
+        if (this._onTelemetry) {
+          this._onTelemetry(telemetry);
+        }
+      },
+      onLog: (message, level) => {
+        if (this._onLog) {
+          this._onLog(message, level);
+        }
+      },
+    });
   }
 
-  // Simular confirmação
-  await new Promise((r) => setTimeout(r, 500));
-  console.log("[MOCK ESP32] Identidade definida com sucesso!");
-};
+  /**
+   * Conecta ao ESP32
+   */
+  async conectar(): Promise<void> {
+    if (!this.connectionManager) {
+      this.initializeManager();
+    }
+    await this.connectionManager!.connect();
+  }
 
-export const espService = {
-  conectar,
-  desconectar,
-  enviarComando,
-  definirIdentidade,
-  set onTelemetry(callback: ((dados: EspTelemetry) => void) | null) {
-    aoReceberTelemetria = callback;
-  },
+  /**
+   * Desconecta do ESP32
+   */
+  async desconectar(): Promise<void> {
+    if (this.connectionManager) {
+      await this.connectionManager.disconnect();
+    }
+  }
+
+  /**
+   * Envia comando genérico
+   */
+  async enviarComando(tipo: string, payload: Record<string, any> = {}): Promise<void> {
+    if (!this.connectionManager || !this.connectionManager.isConnected()) {
+      throw new Error('ESP32 não está conectado. Conecte primeiro usando conectar().');
+    }
+
+    await this.connectionManager.sendCommand(tipo, payload);
+  }
+
+  /**
+   * Define identidade do usuário no ESP32
+   */
+  async definirIdentidade(userId: string): Promise<void> {
+    await this.enviarComando('SET_ID', { userId });
+  }
+
+  /**
+   * Inicia uma missão específica (baseado no level)
+   */
+  async iniciarMissao(level: number): Promise<void> {
+    const mission = missions[level];
+
+    if (!mission) {
+      throw new Error(`Missão com level ${level} não encontrada.`);
+    }
+
+    const firmwareCommand = mission.practice.firmwareCommand;
+
+    await this.enviarComando('SET_MISSION', { missionId: firmwareCommand });
+  }
+
+  /**
+   * Solicita status/telemetria imediata
+   */
+  async solicitarStatus(): Promise<void> {
+    await this.enviarComando('GET_STATUS');
+  }
+
+  /**
+   * Faz flash do firmware
+   */
+  async flashFirmware(file: File | ArrayBuffer): Promise<void> {
+    if (!this.connectionManager) {
+      throw new Error('Connection Manager não inicializado.');
+    }
+
+    await this.connectionManager.flashFirmware(file);
+  }
+
+  /**
+   * Apaga a flash do ESP32
+   */
+  async apagarFlash(): Promise<void> {
+    // Implementação direta via espManager se necessário
+    throw new Error('Função apagarFlash ainda não implementada isoladamente.');
+  }
+
+  /**
+   * Obtém status atual
+   */
+  getStatus(): ConnectionStatus {
+    return this.connectionManager?.getStatus() || 'disconnected';
+  }
+
+  /**
+   * Verifica se está conectado
+   */
+  isConnected(): boolean {
+    return this.connectionManager?.isConnected() || false;
+  }
+
+  /**
+   * Obtém informações do chip
+   */
+  getChipInfo(): { chipName: string; macAddr: string } | null {
+    return this.connectionManager?.getChipInfo() || null;
+  }
+
+  /**
+   * Setter para callback de telemetria
+   */
+  set onTelemetry(callback: ((telemetry: EspTelemetry) => void) | null) {
+    this._onTelemetry = callback;
+  }
+
+  /**
+   * Setter para callback de mudança de status
+   */
   set onStatusChange(callback: ((status: ConnectionStatus) => void) | null) {
-    aoMudarStatus = callback;
-  },
-};
+    this._onStatusChange = callback;
+  }
+
+  /**
+   * Setter para callback de logs
+   */
+  set onLog(callback: ((message: string, level?: 'info' | 'error' | 'debug') => void) | null) {
+    this._onLog = callback;
+  }
+}
+
+// Exporta instância singleton
+export const espService = new ESPService();
