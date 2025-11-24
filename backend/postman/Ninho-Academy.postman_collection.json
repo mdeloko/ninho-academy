@@ -1,0 +1,364 @@
+{
+	"info": {
+		"_postman_id": "da4a0c1c-dbf3-42ec-b733-6b1dbb0a90d7",
+		"name": "Ninho-Academy",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "49680341",
+		"_collection_link": "https://vitorsilva-2022-605203.postman.co/workspace/VITOR-HUGO-AMADEU-DA-SILVA's-Wo~687fd92d-3725-4269-8a20-362845ba32b1/collection/49680341-da4a0c1c-dbf3-42ec-b733-6b1dbb0a90d7?action=share&source=collection_link&creator=49680341"
+	},
+	"item": [
+		{
+			"name": "Fluxo de Usuários",
+			"item": [
+				{
+					"name": "Rota Teste",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/test/hello",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"test",
+								"hello"
+							]
+						},
+						"description": "This is a GET request and it is used to \"get\" data from an endpoint. There is no request body for a GET request, but you can use query parameters to help specify the resource you want data on (e.g., in this request, we have `id=1`).\n\nA successful GET response will have a `200 OK` status, and should include some kind of response body - for example, HTML web content or JSON data."
+					},
+					"response": []
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const body = pm.response.json()",
+									"",
+									"if(body && body.token){",
+									"    pm.collectionVariables.set(\"jwt\",body.token);",
+									"    console.log(\"Token JWT encontrado e guardado. Token:\",body.token);",
+									"}else{",
+									"    console.log(\"Token JWT não encontrado!\")",
+									"}",
+									"pm.test(\"Successful POST request\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([201, 202]);",
+									"});",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"vitor@email.com\",\n    \"password\": \"SenhaForte123!\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/users/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"users",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "User por id",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/users/2",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"users",
+								"2"
+							]
+						},
+						"description": "This is a GET request and it is used to \"get\" data from an endpoint. There is no request body for a GET request, but you can use query parameters to help specify the resource you want data on (e.g., in this request, we have `id=1`).\n\nA successful GET response will have a `200 OK` status, and should include some kind of response body - for example, HTML web content or JSON data."
+					},
+					"response": []
+				},
+				{
+					"name": "Auto Delete",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/users",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"users"
+							]
+						},
+						"description": "# Rota de Autoremoção de Usuário.\n\nO usuário autenticado com JWT que chamar essa rota apagará sua própria conta."
+					},
+					"response": []
+				},
+				{
+					"name": "Auto Update",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Vitor Atualizado\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/users",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"users"
+							]
+						},
+						"description": "# Endpoint para Atualizar a própria conta autenticada.\n\nEnvie o campo que quiser no body que a conta autenticada será atualizada com ele.\n\n``` json\n{\n    \"email\":\"str\",\n    \"password\": \"str\",\n    \"birthDate\": \"yyyy-mm-dd\",\n    \"name\": \"str\"\n}\n\n ```"
+					},
+					"response": []
+				},
+				{
+					"name": "Cadastrar Usúario",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\": \"Vitor Teste\",\r\n    \"email\": \"vitor@email.com\",\r\n    \"password\": \"SenhaForte123!\",\r\n    \"birthDate\": \"2000-01-01\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3000/users/register",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"users",
+								"register"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Fluxo de Progresso",
+			"item": [
+				{
+					"name": "createprogress",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"userId\": 3,\r\n    \"totalXp\": 100,\r\n    \"level\": 1\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/progress",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"progress"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Atualizar progresso",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"totalXp\": 500,\r\n    \"level\": 3\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/progress/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"progress",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Rota Progresso usuário",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/progress/user/3",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"progress",
+								"user",
+								"3"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Deletar Progresso",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/progress/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"progress",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Rota Progresso",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/progress/2",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"progress",
+								"2"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{jwt}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"requests": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"requests": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "jwt",
+			"value": "1"
+		},
+		{
+			"key": "base_url",
+			"value": "https://template.postman-echo.com"
+		}
+	]
+}
