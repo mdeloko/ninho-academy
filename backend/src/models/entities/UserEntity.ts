@@ -1,5 +1,3 @@
-import { validatePassword } from "../../utils/validations.ts";
-
 type UserProps = {
     name: string;
     password: string;
