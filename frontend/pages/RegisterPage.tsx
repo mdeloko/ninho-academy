@@ -35,16 +35,21 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess, o
       const resposta = await fetch(ENDPOINTS.auth.registrar, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: nome, email, password: senha }),
+        body: JSON.stringify({ name: nome, email, password: senha, birthDate: '2000-01-01' }),
       });
 
       const dados = await resposta.json();
 
       if (!resposta.ok) {
-        throw new Error(dados.erro || 'Erro ao criar conta.');
+        throw new Error(dados.message || 'Erro ao criar conta.');
       }
 
-      onRegisterSuccess(dados.usuario);
+      // Salvar token
+      localStorage.setItem('token', dados.token);
+      
+      // Decodificar token para pegar user info
+      const tokenPayload = JSON.parse(atob(dados.token.split('.')[1]));
+      onRegisterSuccess({ id: tokenPayload.id, email: tokenPayload.email, name: tokenPayload.name });
     } catch (erro: any) {
       setErro(erro.message);
     } finally {

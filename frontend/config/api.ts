@@ -4,25 +4,23 @@ const URL_BASE_API = import.meta.env.VITE_API_URL || '';
 
 export const ENDPOINTS = {
   auth: {
-    login: `${URL_BASE_API}/api/auth/login`,
-    registrar: `${URL_BASE_API}/api/auth/register`,
+    login: `${URL_BASE_API}/users/login`,
+    registrar: `${URL_BASE_API}/users/register`,
   },
   usuarios: {
-    buscarPorId: (id: string) => `${URL_BASE_API}/api/users/${id}`,
-    atualizarStatusESP32: (id: string) => `${URL_BASE_API}/api/users/${id}/esp32-status`,
-    marcarComoSincronizado: (id: string) => `${URL_BASE_API}/api/users/${id}/mark-synced`,
-  },
-  curso: {
-    buscarMapa: (usuarioId: string, trilhaId: string) =>
-      `${URL_BASE_API}/api/course/map?userId=${usuarioId}&trackId=${trilhaId}`,
+    buscarPorId: (id: string) => `${URL_BASE_API}/users/${id}`,
+    atualizar: `${URL_BASE_API}/users`,
+    deletar: `${URL_BASE_API}/users`,
   },
   progresso: {
-    completarLicao: `${URL_BASE_API}/api/progress/complete-lesson`,
+    criar: `${URL_BASE_API}/progress`,
+    buscarPorUsuario: (userId: string) => `${URL_BASE_API}/progress/user/${userId}`,
+    atualizar: (id: string) => `${URL_BASE_API}/progress/${id}`,
+    deletar: (id: string) => `${URL_BASE_API}/progress/${id}`,
   },
-  telemetria: {
-    verificarSessao: `${URL_BASE_API}/api/telemetry/verify-session`,
+  teste: {
+    hello: `${URL_BASE_API}/test/hello`,
   },
-  saude: `${URL_BASE_API}/health`,
 };
 
 export const CONFIGURACAO_API = {

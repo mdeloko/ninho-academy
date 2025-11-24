@@ -30,10 +30,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onNavigate
       const dados = await resposta.json();
 
       if (!resposta.ok) {
-        throw new Error(dados.erro || "Erro ao entrar.");
+        throw new Error(dados.message || "Erro ao entrar.");
       }
 
-      onLoginSuccess(dados.usuario);
+      // Salvar token
+      localStorage.setItem('token', dados.token);
+      
+      // Decodificar token para pegar user info
+      const tokenPayload = JSON.parse(atob(dados.token.split('.')[1]));
+      onLoginSuccess({ id: tokenPayload.id, email: tokenPayload.email, name: tokenPayload.name });
     } catch (erro: any) {
       setErro(erro.message);
     } finally {
