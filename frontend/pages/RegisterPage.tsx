@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { Button } from "../components/ui/Button";
-import { ENDPOINTS } from "../config/api";
 
 interface RegisterPageProps {
   onRegisterSuccess: (user: any) => void;
@@ -32,26 +31,32 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess, o
     setCarregando(true);
 
     try {
-      const resposta = await fetch(ENDPOINTS.auth.registrar, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: nome, email, password: senha, birthDate: "2000-01-01" }),
-      });
+      // MOCK: Simular registro sem fazer chamada real
+      await new Promise((r) => setTimeout(r, 800)); // Simular delay
 
-      const dados = await resposta.json();
+      // Mock de token
+      const mockToken = btoa(
+        JSON.stringify({
+          id: "mock-user-" + Math.random().toString(36).substr(2, 9),
+          email: email,
+          name: nome,
+          iat: Math.floor(Date.now() / 1000),
+        })
+      );
 
-      if (!resposta.ok) {
-        throw new Error(dados.message || "Erro ao criar conta.");
-      }
+      // Separar token em 3 partes (simulando JWT)
+      const tokenFake = `header.${mockToken}.signature`;
+
+      console.log("[MOCK] Cadastro bem-sucedido para:", email);
 
       // Salvar token
-      localStorage.setItem("token", dados.token);
+      localStorage.setItem("token", tokenFake);
 
       // Decodificar token para pegar user info
-      const tokenPayload = JSON.parse(atob(dados.token.split(".")[1]));
-      onRegisterSuccess({ 
-        id: tokenPayload.id, 
-        email: tokenPayload.email, 
+      const tokenPayload = JSON.parse(atob(tokenFake.split(".")[1]));
+      onRegisterSuccess({
+        id: tokenPayload.id,
+        email: tokenPayload.email,
         nome: tokenPayload.name || nome,
         xp: 0,
         sequenciaDias: 1,
@@ -59,10 +64,11 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess, o
         sincronizado: false,
         trilhaId: undefined,
         licoesConcluidas: [],
-        conquistas: []
+        conquistas: [],
       });
     } catch (erro: any) {
-      setErro(erro.message);
+      console.error("[MOCK] Erro no cadastro:", erro);
+      setErro(erro.message || "Erro ao criar conta.");
     } finally {
       setCarregando(false);
     }
