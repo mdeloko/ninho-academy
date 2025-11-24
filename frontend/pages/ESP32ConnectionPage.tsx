@@ -196,15 +196,31 @@ export const ESP32ConnectionPage: React.FC<ESP32ConnectionPageProps> = ({ onComp
       await sleep(100);
 
       addOutput('Firmware gravado com sucesso!');
-      addOutput('Reinicie o ESP32 para executar o novo firmware.');
+      addOutput('Reiniciando ESP32...');
 
-      // Desconectar após flash para liberar a porta
+      // Faz hard reset para o firmware começar a rodar
       try {
+        await espStub.hardReset();
+        addOutput('ESP32 reiniciado. Firmware está rodando.');
+
+        // Aguarda o firmware inicializar (1 segundo)
+        await sleep(1000);
+
+        // Desconecta do modo ESPLoader
         await espStub.disconnect();
+
+        // Fecha a porta do ESPLoader
         await espStub.port.close();
-        addOutput('Porta serial liberada.');
+
+        addOutput('Modo de gravação encerrado.');
+
+        // Limpa o espStub
+        setEspStub(undefined);
+
+        // Agora a porta está livre para reconectar em modo normal nas missões
+
       } catch (e) {
-        console.warn('Erro ao fechar porta:', e);
+        console.warn('Erro ao finalizar:', e);
       }
 
       setPageState('complete');
