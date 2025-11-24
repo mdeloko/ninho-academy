@@ -8,6 +8,11 @@ export interface Progress {
   missionCompleted?: string[]; // Mantido apenas no frontend
 }
 
+// Helper para normalizar a resposta do backend (lidar com { props: ... } ou objeto plano)
+const normalizeData = (data: any) => {
+  return data.props ? data.props : data;
+};
+
 export const progressService = {
   // Criar progresso para novo usuário
   async createProgress(userId: string): Promise<Progress> {
@@ -33,7 +38,8 @@ export const progressService = {
         return await this.getProgressByUserId(userId);
       }
 
-      const data = await resposta.json();
+      const rawData = await resposta.json();
+      const data = normalizeData(rawData);
       console.log("[PROGRESS] Progresso criado:", data);
 
       return {
@@ -71,7 +77,8 @@ export const progressService = {
         throw new Error("Erro ao buscar progresso");
       }
 
-      const data = await resposta.json();
+      const rawData = await resposta.json();
+      const data = normalizeData(rawData);
       console.log("[PROGRESS] Progresso encontrado:", data);
 
       return {
@@ -115,7 +122,9 @@ export const progressService = {
         throw new Error("Erro ao atualizar progresso");
       }
 
-      const data = await resposta.json();
+      const rawData = await resposta.json();
+      const data = normalizeData(rawData);
+
       const progressAtualizado = {
         id: data.id,
         userId,
