@@ -45,7 +45,19 @@ export const ESP32ConnectionPage: React.FC<ESP32ConnectionPageProps> = ({ onComp
       setPageState('checking_version');
       addOutput('Verificando versão do firmware...');
 
-      const version = await checkFirmwareVersion();
+      let version: string | null = null;
+
+      try {
+        version = await checkFirmwareVersion();
+      } catch (error: any) {
+        // Se usuário cancelou o diálogo, volta para tela inicial
+        if (error.name === 'NotFoundError') {
+          addOutput('Seleção de porta cancelada.');
+          setPageState('initial');
+          return;
+        }
+        throw error;
+      }
 
       if (version) {
         addOutput(`Versão detectada: ${version}`);
@@ -214,66 +226,97 @@ export const ESP32ConnectionPage: React.FC<ESP32ConnectionPageProps> = ({ onComp
 
   // Verifica versão do firmware via Serial (após já estar gravado e rodando)
   const checkFirmwareVersion = async (): Promise<string | null> => {
+    let port: any = null;
+    let reader: ReadableStreamDefaultReader | null = null;
+    let writer: WritableStreamDefaultWriter | null = null;
+
     try {
-      // Conecta via serial normal (não para flash)
-      const port = await (navigator as any).serial.requestPort();
+      // Solicita porta serial
+      port = await (navigator as any).serial.requestPort();
+
+      // Tenta abrir a porta
       await port.open({ baudRate: 115200 });
 
       // Configura reader/writer
-      const decoder = new TextDecoderStream();
-      const inputDone = port.readable.pipeTo(decoder.writable);
-      const reader = decoder.readable.getReader();
+      const textDecoder = new TextDecoderStream();
+      const readableStreamClosed = port.readable.pipeTo(textDecoder.writable);
+      reader = textDecoder.readable.getReader();
 
-      const encoder = new TextEncoderStream();
-      const outputDone = encoder.readable.pipeTo(port.writable);
-      const writer = encoder.writable.getWriter();
+      const textEncoder = new TextEncoderStream();
+      const writableStreamClosed = textEncoder.readable.pipeTo(port.writable);
+      writer = textEncoder.writable.getWriter();
 
       // Envia comando GET_VERSION
       await writer.write(JSON.stringify({ type: 'GET_VERSION' }) + '\n');
 
-      // Aguarda resposta (timeout de 2 segundos)
-      const timeout = setTimeout(() => {
-        reader.cancel();
-        writer.close();
-        port.close();
-      }, 2000);
-
+      // Aguarda resposta com timeout
       let version: string | null = null;
+      const startTime = Date.now();
+      const TIMEOUT_MS = 2000;
 
-      try {
-        while (true) {
-          const { value, done } = await reader.read();
-          if (done) break;
+      while (Date.now() - startTime < TIMEOUT_MS) {
+        const readPromise = reader.read();
+        const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve({ value: null, done: true }), 500));
 
-          // Processa linha recebida
-          const lines = value.split('\n');
-          for (const line of lines) {
-            if (line.trim()) {
-              try {
-                const response = JSON.parse(line);
-                if (response.type === 'VERSION') {
-                  version = response.version;
-                  clearTimeout(timeout);
-                  break;
-                }
-              } catch (e) {
-                // Ignora linhas que não são JSON
+        const result: any = await Promise.race([readPromise, timeoutPromise]);
+
+        if (result.done || !result.value) break;
+
+        // Processa linhas recebidas
+        const lines = result.value.split('\n');
+        for (const line of lines) {
+          if (line.trim()) {
+            try {
+              const response = JSON.parse(line);
+              if (response.type === 'VERSION') {
+                version = response.version;
+                break;
               }
+            } catch (e) {
+              // Ignora linhas que não são JSON válido
             }
           }
-          if (version) break;
         }
-      } finally {
-        clearTimeout(timeout);
-        await reader.cancel();
-        await writer.close();
-        await port.close();
+
+        if (version) break;
       }
 
       return version;
-    } catch (error) {
+
+    } catch (error: any) {
+      // Se o usuário cancelou a seleção de porta
+      if (error.name === 'NotFoundError') {
+        throw error; // Re-lança para ser tratado no clickConnect
+      }
+
       console.error('Erro ao verificar versão:', error);
       return null;
+
+    } finally {
+      // SEMPRE fecha a porta, mesmo se houver erro
+      try {
+        if (reader) {
+          await reader.cancel();
+        }
+      } catch (e) {
+        console.warn('Erro ao fechar reader:', e);
+      }
+
+      try {
+        if (writer) {
+          await writer.close();
+        }
+      } catch (e) {
+        console.warn('Erro ao fechar writer:', e);
+      }
+
+      try {
+        if (port) {
+          await port.close();
+        }
+      } catch (e) {
+        console.warn('Erro ao fechar porta:', e);
+      }
     }
   };
 
