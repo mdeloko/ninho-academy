@@ -1,80 +1,95 @@
 /**
- * ESP Service - Serviço singleton para comunicação com ESP32
- * Usa ESPConnectionManager internamente
+ * ESP Service - Serviço para comunicação serial com ESP32
+ * Usa a mesma lógica do open source, mas para comunicação serial após flash
  */
 
-import { ESPConnectionManager } from './espConnectionManager';
+import { connectESP, formatMacAddr } from '../lib/esptool';
 import type { EspTelemetry, ConnectionStatus } from '../types';
 import { missions } from '../data/missions';
 
 class ESPService {
-  private connectionManager: ESPConnectionManager | null = null;
-  private _onTelemetry: ((telemetry: EspTelemetry) => void) | null = null;
-  private _onStatusChange: ((status: ConnectionStatus) => void) | null = null;
-  private _onLog: ((message: string, level?: 'info' | 'error' | 'debug') => void) | null = null;
-
-  constructor() {
-    this.initializeManager();
-  }
+  private port: any = null;
+  private reader: ReadableStreamDefaultReader | null = null;
+  private writer: WritableStreamDefaultWriter | null = null;
+  private _status: ConnectionStatus = 'disconnected';
 
   /**
-   * Inicializa o Connection Manager com callbacks
-   */
-  private initializeManager(): void {
-    this.connectionManager = new ESPConnectionManager({
-      onStatusChange: (status) => {
-        if (this._onStatusChange) {
-          this._onStatusChange(status);
-        }
-      },
-      onTelemetry: (telemetry) => {
-        if (this._onTelemetry) {
-          this._onTelemetry(telemetry);
-        }
-      },
-      onLog: (message, level) => {
-        if (this._onLog) {
-          this._onLog(message, level);
-        }
-      },
-    });
-  }
-
-  /**
-   * Conecta ao ESP32
+   * Conecta ao ESP32 via Serial (para comunicação, não flash)
    */
   async conectar(): Promise<void> {
-    if (!this.connectionManager) {
-      this.initializeManager();
+    if (this.port) {
+      throw new Error('ESP32 já está conectado.');
     }
-    await this.connectionManager!.connect();
+
+    try {
+      // Solicita porta serial
+      this.port = await (navigator as any).serial.requestPort();
+
+      await this.port.open({
+        baudRate: 115200,
+      });
+
+      this._status = 'connected';
+
+      // Configura reader/writer para comunicação
+      const decoder = new TextDecoderStream();
+      const inputDone = this.port.readable.pipeTo(decoder.writable);
+      this.reader = decoder.readable.getReader();
+
+      const encoder = new TextEncoderStream();
+      const outputDone = encoder.readable.pipeTo(this.port.writable);
+      this.writer = encoder.writable.getWriter();
+
+    } catch (erro) {
+      this._status = 'error';
+      throw new Error(`Falha ao conectar: ${erro}`);
+    }
   }
 
   /**
    * Desconecta do ESP32
    */
   async desconectar(): Promise<void> {
-    if (this.connectionManager) {
-      await this.connectionManager.disconnect();
+    if (this.reader) {
+      await this.reader.cancel();
+      this.reader = null;
     }
+
+    if (this.writer) {
+      await this.writer.close();
+      this.writer = null;
+    }
+
+    if (this.port) {
+      await this.port.close();
+      this.port = null;
+    }
+
+    this._status = 'disconnected';
   }
 
   /**
-   * Envia comando genérico
+   * Envia comando JSON para o ESP32
    */
-  async enviarComando(tipo: string, payload: Record<string, any> = {}): Promise<void> {
-    if (!this.connectionManager || !this.connectionManager.isConnected()) {
-      throw new Error('ESP32 não está conectado. Conecte primeiro usando conectar().');
+  private async enviarJSON(comando: any): Promise<void> {
+    if (!this.writer) {
+      throw new Error('ESP32 não conectado.');
     }
 
-    await this.connectionManager.sendCommand(tipo, payload);
+    const json = JSON.stringify(comando) + '\n';
+    await this.writer.write(json);
   }
 
   /**
    * Define identidade do usuário no ESP32
    */
   async definirIdentidade(userId: string): Promise<void> {
-    await this.enviarComando('SET_ID', { userId });
+    await this.conectar();
+    await this.enviarJSON({
+      type: 'SET_ID',
+      userId: userId,
+    });
+    await this.desconectar();
   }
 
   /**
@@ -89,75 +104,31 @@ class ESPService {
 
     const firmwareCommand = mission.practice.firmwareCommand;
 
-    await this.enviarComando('SET_MISSION', { missionId: firmwareCommand });
+    await this.enviarJSON({
+      type: 'SET_MISSION',
+      missionId: firmwareCommand,
+    });
   }
 
   /**
    * Solicita status/telemetria imediata
    */
   async solicitarStatus(): Promise<void> {
-    await this.enviarComando('GET_STATUS');
-  }
-
-  /**
-   * Faz flash do firmware
-   */
-  async flashFirmware(file: File | ArrayBuffer): Promise<void> {
-    if (!this.connectionManager) {
-      throw new Error('Connection Manager não inicializado.');
-    }
-
-    await this.connectionManager.flashFirmware(file);
-  }
-
-  /**
-   * Apaga a flash do ESP32
-   */
-  async apagarFlash(): Promise<void> {
-    // Implementação direta via espManager se necessário
-    throw new Error('Função apagarFlash ainda não implementada isoladamente.');
+    await this.enviarJSON({ type: 'GET_STATUS' });
   }
 
   /**
    * Obtém status atual
    */
   getStatus(): ConnectionStatus {
-    return this.connectionManager?.getStatus() || 'disconnected';
+    return this._status;
   }
 
   /**
    * Verifica se está conectado
    */
   isConnected(): boolean {
-    return this.connectionManager?.isConnected() || false;
-  }
-
-  /**
-   * Obtém informações do chip
-   */
-  getChipInfo(): { chipName: string; macAddr: string } | null {
-    return this.connectionManager?.getChipInfo() || null;
-  }
-
-  /**
-   * Setter para callback de telemetria
-   */
-  set onTelemetry(callback: ((telemetry: EspTelemetry) => void) | null) {
-    this._onTelemetry = callback;
-  }
-
-  /**
-   * Setter para callback de mudança de status
-   */
-  set onStatusChange(callback: ((status: ConnectionStatus) => void) | null) {
-    this._onStatusChange = callback;
-  }
-
-  /**
-   * Setter para callback de logs
-   */
-  set onLog(callback: ((message: string, level?: 'info' | 'error' | 'debug') => void) | null) {
-    this._onLog = callback;
+    return this._status === 'connected' && this.port !== null;
   }
 }
 

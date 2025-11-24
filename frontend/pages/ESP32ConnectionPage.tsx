@@ -1,204 +1,224 @@
 /**
- * ESP32 Connection Page - Página para conectar e fazer flash do firmware no ESP32
- * Gerencia todo o fluxo: conexão, flash, erros e guias
+ * ESP32 Connection Page - BASEADO 100% NO exemplo-esp32-opensource/src/App.js
+ * Mantém a mesma lógica de conexão e flash que funciona no exemplo
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '../components/ui/Button';
 import { ConsoleOutput } from '../components/esp/ConsoleOutput';
-import { ErrorDisplay, ESP_ERRORS, type ESPError } from '../components/esp/ErrorDisplay';
-import { FlashProgress } from '../components/esp/FlashProgress';
 import { ConnectionGuide } from '../components/esp/ConnectionGuide';
-import { espService } from '../services/espService';
+import { connectESP, formatMacAddr, sleep, supported } from '../lib/esptool';
 
-type PageState =
-  | 'initial'           // Tela inicial com botão conectar
-  | 'connecting'        // Conectando ao ESP32
-  | 'connected'         // Conectado, pronto para flash
-  | 'flashing'          // Gravando firmware
-  | 'flash-complete'    // Firmware gravado com sucesso
-  | 'error'             // Erro ocorreu
-  | 'guide';            // Exibindo guia de conexão
+type PageState = 'initial' | 'connecting' | 'connected' | 'flashing' | 'complete' | 'error' | 'guide';
 
 export interface ESP32ConnectionPageProps {
   onComplete?: () => void;
   onBack?: () => void;
-  autoConnect?: boolean; // Se true, tenta conectar automaticamente ao carregar
 }
 
-export const ESP32ConnectionPage: React.FC<ESP32ConnectionPageProps> = ({
-  onComplete,
-  onBack,
-  autoConnect = false,
-}) => {
+export const ESP32ConnectionPage: React.FC<ESP32ConnectionPageProps> = ({ onComplete, onBack }) => {
   const [pageState, setPageState] = useState<PageState>('initial');
   const [logs, setLogs] = useState<string[]>([]);
+  const [espStub, setEspStub] = useState<any>(undefined);
+  const [chipName, setChipName] = useState<string>('');
+  const [macAddr, setMacAddr] = useState<string>('');
   const [flashProgress, setFlashProgress] = useState<number>(0);
-  const [currentError, setCurrentError] = useState<ESPError | null>(null);
-  const [chipInfo, setChipInfo] = useState<{ chipName: string; macAddr: string } | null>(null);
 
-  // Configurar callbacks do espService
-  useEffect(() => {
-    espService.onLog = (message: string, level?: 'info' | 'error' | 'debug') => {
-      const prefix = level === 'error' ? '❌' : level === 'debug' ? '🔍' : 'ℹ️';
-      setLogs((prev) => [...prev, `${prefix} ${message}`]);
-    };
+  // Adiciona log (EXATO DO OPEN SOURCE)
+  const addOutput = (msg: string) => {
+    setLogs((prev) => [...prev, msg]);
+  };
 
-    espService.onStatusChange = (status) => {
-      if (status === 'error') {
-        handleError('DISCONNECTED');
-      }
-    };
-
-    // Auto-conectar se solicitado
-    if (autoConnect) {
-      handleConnect();
+  // Conecta ao ESP32 (LÓGICA EXATA DO OPEN SOURCE - App.js linha 48)
+  const clickConnect = async () => {
+    if (espStub) {
+      await espStub.disconnect();
+      await espStub.port.close();
+      setEspStub(undefined);
+      return;
     }
 
-    return () => {
-      // Cleanup: desconectar ao desmontar componente
-      espService.desconectar();
-    };
-  }, [autoConnect]);
-
-  /**
-   * Tenta conectar ao ESP32
-   */
-  const handleConnect = async () => {
-    setPageState('connecting');
-    setLogs([]);
-    setCurrentError(null);
-
     try {
-      await espService.conectar();
+      setPageState('connecting');
+      addOutput('Solicitando porta serial...');
 
-      // Obtém informações do chip
-      const info = espService.getChipInfo();
-      setChipInfo(info);
+      const esploader = await connectESP({
+        log: (...args) => addOutput(`${args[0]}`),
+        debug: (...args) => console.debug(...args),
+        error: (...args) => console.error(...args),
+        baudRate: 115200,
+      });
 
+      addOutput('Inicializando ESP32...');
+      await esploader.initialize();
+
+      addOutput(`Conectado: ${esploader.chipName}`);
+      addOutput(`MAC Address: ${formatMacAddr(esploader.macAddr())}`);
+
+      const newEspStub = await esploader.runStub();
+
+      setConnected(true);
+      setEspStub(newEspStub);
+      setChipName(esploader.chipName);
+      setMacAddr(formatMacAddr(esploader.macAddr()));
       setPageState('connected');
-      addLog(`✅ Conectado: ${info?.chipName || 'ESP32'}`);
-      addLog(`📍 MAC Address: ${info?.macAddr || 'Desconhecido'}`);
-    } catch (error: any) {
-      console.error('[ESP32ConnectionPage] Erro ao conectar:', error);
 
-      // Identifica tipo de erro
-      if (error.message.includes('Nenhuma porta')) {
-        handleError('NO_DEVICE');
-      } else if (error.message.includes('Permissão negada')) {
-        handleError('PERMISSION_DENIED');
-      } else if (error.message.includes('não suportada')) {
-        handleError('NOT_SUPPORTED');
-      } else {
-        handleError('NO_DEVICE');
+      // Listener de desconexão (EXATO DO OPEN SOURCE - linha 93)
+      newEspStub.port.addEventListener('disconnect', () => {
+        setEspStub(undefined);
+        setPageState('error');
+        addOutput('ESP32 desconectado!');
+      });
+    } catch (err: any) {
+      const shortErrMsg = `${err}`.replace('Error: ', '');
+      addOutput(`ERRO: ${shortErrMsg}`);
+      setPageState('error');
+
+      if (esploader) {
+        try {
+          await esploader.port.close();
+          await esploader.disconnect();
+        } catch (e) {
+          console.error('Erro ao fechar porta:', e);
+        }
       }
     }
   };
 
-  /**
-   * Faz flash do firmware
-   */
-  const handleFlashFirmware = async () => {
+  // Flash do firmware (LÓGICA EXATA DO OPEN SOURCE - App.js linha 150)
+  const programFirmware = async () => {
+    if (!espStub) {
+      addOutput('ERRO: ESP32 não conectado');
+      return;
+    }
+
     setPageState('flashing');
     setFlashProgress(0);
 
+    const toArrayBuffer = (inputFile: Blob): Promise<ArrayBuffer> => {
+      const reader = new FileReader();
+
+      return new Promise((resolve, reject) => {
+        reader.onerror = () => {
+          reader.abort();
+          reject(new DOMException('Problema ao ler arquivo.'));
+        };
+
+        reader.onload = () => {
+          resolve(reader.result as ArrayBuffer);
+        };
+        reader.readAsArrayBuffer(inputFile);
+      });
+    };
+
     try {
-      // Carrega firmware do public
+      // Carrega firmware
+      addOutput('Carregando firmware...');
       const response = await fetch('/firmware/ninho-academy.bin');
 
       if (!response.ok) {
-        throw new Error('Firmware não encontrado. Certifique-se de que o arquivo .bin está em /public/firmware/');
+        throw new Error('Firmware não encontrado em /firmware/ninho-academy.bin');
       }
 
       const firmwareBlob = await response.blob();
-      const firmwareBuffer = await firmwareBlob.arrayBuffer();
+      const contents = await toArrayBuffer(firmwareBlob);
 
-      addLog('📦 Firmware carregado, iniciando gravação...');
+      addOutput(`Firmware carregado: ${contents.byteLength} bytes`);
 
-      // Configura callback de progresso
-      espService['connectionManager']['callbacks'].onFlashProgress = (progress: number) => {
-        setFlashProgress(progress);
-      };
+      // Apaga flash (opcional mas recomendado)
+      addOutput('Apagando flash...');
+      await espStub.eraseFlash();
+      addOutput('Flash apagado!');
 
-      await espService.flashFirmware(firmwareBuffer);
+      // Grava firmware (EXATO DO OPEN SOURCE - linha 181)
+      addOutput('Gravando firmware...');
 
-      setPageState('flash-complete');
-      addLog('🎉 Firmware gravado com sucesso!');
-    } catch (error: any) {
-      console.error('[ESP32ConnectionPage] Erro ao gravar firmware:', error);
-      addLog(`❌ Erro: ${error.message}`);
-      handleError('FLASH_FAILED');
+      await espStub.flashData(
+        contents,
+        (bytesWritten: number, totalBytes: number) => {
+          const progress = (bytesWritten / totalBytes);
+          const percentage = Math.floor(progress * 100);
+          setFlashProgress(percentage);
+
+          if (percentage % 10 === 0) {
+            addOutput(`Progresso: ${percentage}%`);
+          }
+        },
+        0x10000 // Offset padrão para firmware ESP32
+      );
+
+      await sleep(100);
+
+      addOutput('Firmware gravado com sucesso!');
+      addOutput('Reinicie o ESP32 para executar o novo firmware.');
+      setPageState('complete');
+    } catch (e: any) {
+      addOutput(`ERRO ao gravar firmware!`);
+      addOutput(`${e}`);
+      console.error(e);
+      setPageState('error');
     }
   };
 
-  /**
-   * Adiciona log à lista
-   */
-  const addLog = (message: string) => {
-    setLogs((prev) => [...prev, message]);
+  const handleRetry = () => {
+    setLogs([]);
+    setPageState('initial');
   };
 
-  /**
-   * Trata erro e exibe mensagem apropriada
-   */
-  const handleError = (errorKey: string) => {
-    const error = ESP_ERRORS[errorKey] || {
-      type: 'unknown',
-      message: 'Erro desconhecido',
-      suggestion: 'Tente novamente ou consulte a documentação.',
-      retryable: true,
-    };
-
-    setCurrentError(error);
-    setPageState('error');
-  };
-
-  /**
-   * Exibe o guia de conexão
-   */
   const showGuide = () => {
     setPageState('guide');
   };
 
-  /**
-   * Tenta novamente após erro
-   */
-  const handleRetry = () => {
-    setCurrentError(null);
-    setPageState('initial');
-    handleConnect();
-  };
+  // RENDERIZAÇÃO
 
-  /**
-   * Finaliza e volta
-   */
-  const handleFinish = () => {
-    if (onComplete) {
-      onComplete();
-    } else if (onBack) {
-      onBack();
-    }
-  };
+  if (!supported()) {
+    return (
+      <div className="min-h-screen bg-brand-light flex items-center justify-center p-6">
+        <div className="max-w-md text-center space-y-6">
+          <div className="text-6xl mb-4">❌</div>
+          <h1 className="text-3xl font-extrabold text-brand-brown">
+            Navegador não suportado
+          </h1>
+          <p className="text-gray-600">
+            Use Chrome, Edge ou Opera para acessar o ESP32.
+            Firefox e Safari não suportam Web Serial API.
+          </p>
+          {onBack && (
+            <Button variant="outline" size="lg" fullWidth onClick={onBack}>
+              ← Voltar
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  }
 
-  // ========================================
-  // RENDERIZAÇÃO DOS ESTADOS
-  // ========================================
+  if (pageState === 'guide') {
+    return (
+      <div className="min-h-screen bg-brand-light flex items-center justify-center p-6">
+        <ConnectionGuide onRetry={handleRetry} onClose={onBack} />
+      </div>
+    );
+  }
 
-  // ESTADO: INITIAL
   if (pageState === 'initial') {
     return (
-      <div className="min-h-screen bg-brand-light flex flex-col items-center justify-center p-6">
+      <div className="min-h-screen bg-brand-light flex items-center justify-center p-6">
         <div className="max-w-md w-full text-center space-y-8">
           <div className="text-6xl mb-4">🔌</div>
           <h1 className="text-3xl font-extrabold text-brand-brown">
             Conectar ESP32
           </h1>
           <p className="text-gray-600">
-            Conecte seu ESP32 via USB e clique no botão abaixo para iniciar a conexão e gravação do firmware.
+            Conecte seu ESP32 via USB e clique no botão para iniciar.
           </p>
 
-          <Button size="lg" fullWidth onClick={handleConnect}>
+          <Button size="lg" fullWidth onClick={clickConnect}>
             Conectar ESP32
+          </Button>
+
+          <Button variant="outline" size="sm" fullWidth onClick={showGuide}>
+            📖 Ver guia de conexão
           </Button>
 
           {onBack && (
@@ -211,57 +231,47 @@ export const ESP32ConnectionPage: React.FC<ESP32ConnectionPageProps> = ({
     );
   }
 
-  // ESTADO: CONNECTING
   if (pageState === 'connecting') {
     return (
-      <div className="min-h-screen bg-brand-light flex flex-col items-center justify-center p-6">
-        <div className="max-w-md w-full text-center space-y-8">
-          <div className="text-6xl mb-4 animate-pulse">⏳</div>
-          <h1 className="text-3xl font-extrabold text-brand-brown">
-            Conectando...
-          </h1>
-          <p className="text-gray-600">
-            Selecione a porta do ESP32 no diálogo que apareceu.
-          </p>
-
-          {/* Console de logs */}
-          <div className="text-left">
-            <ConsoleOutput logs={logs} maxHeight="h-48" />
+      <div className="min-h-screen bg-brand-light flex items-center justify-center p-6">
+        <div className="max-w-2xl w-full space-y-6">
+          <div className="text-center">
+            <div className="text-6xl mb-4 animate-pulse">⏳</div>
+            <h1 className="text-3xl font-extrabold text-brand-brown">
+              Conectando...
+            </h1>
+            <p className="text-gray-600 mt-2">
+              Selecione a porta do ESP32 no diálogo
+            </p>
           </div>
+          <ConsoleOutput logs={logs} maxHeight="h-64" />
         </div>
       </div>
     );
   }
 
-  // ESTADO: CONNECTED
   if (pageState === 'connected') {
     return (
-      <div className="min-h-screen bg-brand-light flex flex-col items-center justify-center p-6">
-        <div className="max-w-2xl w-full space-y-8">
+      <div className="min-h-screen bg-brand-light flex items-center justify-center p-6">
+        <div className="max-w-2xl w-full space-y-6">
           <div className="text-center">
             <div className="text-6xl mb-4">✅</div>
             <h1 className="text-3xl font-extrabold text-brand-brown">
               ESP32 Conectado!
             </h1>
-            {chipInfo && (
-              <p className="text-gray-600 mt-2">
-                {chipInfo.chipName} • MAC: {chipInfo.macAddr}
-              </p>
-            )}
+            <p className="text-gray-600 mt-2">
+              {chipName} • MAC: {macAddr}
+            </p>
           </div>
 
-          {/* Console de logs */}
           <ConsoleOutput logs={logs} maxHeight="h-48" />
 
-          {/* Botão para gravar firmware */}
-          <div className="bg-white p-6 rounded-2xl border-2 border-gray-200">
-            <h2 className="font-bold text-brand-brown mb-4">Próximo passo:</h2>
-            <p className="text-gray-600 mb-6">
+          <div className="bg-white p-6 rounded-2xl border-2 border-gray-200 space-y-4">
+            <h2 className="font-bold text-brand-brown text-lg">Próximo passo:</h2>
+            <p className="text-gray-600">
               Vamos gravar o firmware da plataforma Ninho Academy no seu ESP32.
-              Isso permite que ele execute todas as missões práticas.
             </p>
-
-            <Button size="lg" fullWidth onClick={handleFlashFirmware}>
+            <Button size="lg" fullWidth onClick={programFirmware}>
               📤 Gravar Firmware
             </Button>
           </div>
@@ -270,83 +280,101 @@ export const ESP32ConnectionPage: React.FC<ESP32ConnectionPageProps> = ({
     );
   }
 
-  // ESTADO: FLASHING
   if (pageState === 'flashing') {
     return (
-      <div className="min-h-screen bg-brand-light flex flex-col items-center justify-center p-6">
-        <div className="max-w-2xl w-full space-y-8">
-          <FlashProgress
-            progress={flashProgress}
-            status="Gravando firmware no ESP32..."
-            currentFile="ninho-academy.bin"
-          />
+      <div className="min-h-screen bg-brand-light flex items-center justify-center p-6">
+        <div className="max-w-2xl w-full space-y-6">
+          <div className="text-center space-y-4">
+            <h1 className="text-2xl font-extrabold text-brand-brown">
+              Gravando firmware...
+            </h1>
 
-          {/* Console de logs */}
+            {/* Barra de progresso */}
+            <div className="w-full h-8 bg-gray-200 rounded-full overflow-hidden border-2 border-gray-300">
+              <div
+                className="h-full bg-gradient-to-r from-brand-yellow to-brand-darkYellow transition-all duration-300 flex items-center justify-center"
+                style={{ width: `${flashProgress}%` }}
+              >
+                {flashProgress > 10 && (
+                  <span className="text-brand-brown font-bold text-sm">
+                    {flashProgress}%
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-blue-50 p-4 rounded-xl border-2 border-blue-100">
+              <p className="text-sm text-blue-900">
+                <strong>⚠️ Não desconecte o ESP32</strong> durante a gravação.
+              </p>
+            </div>
+          </div>
+
           <ConsoleOutput logs={logs} maxHeight="h-64" />
         </div>
       </div>
     );
   }
 
-  // ESTADO: FLASH_COMPLETE
-  if (pageState === 'flash-complete') {
+  if (pageState === 'complete') {
     return (
-      <div className="min-h-screen bg-brand-light flex flex-col items-center justify-center p-6">
+      <div className="min-h-screen bg-brand-light flex items-center justify-center p-6">
         <div className="max-w-md w-full text-center space-y-8">
           <div className="text-6xl mb-4">🎉</div>
           <h1 className="text-3xl font-extrabold text-brand-brown">
             Firmware Gravado!
           </h1>
           <p className="text-gray-600">
-            Seu ESP32 está pronto para as missões práticas da plataforma.
+            Seu ESP32 está pronto para as missões práticas.
           </p>
 
           <div className="bg-green-50 p-6 rounded-2xl border-2 border-green-100">
             <p className="text-sm text-green-900">
-              <strong>✅ Sucesso!</strong><br />
-              O firmware foi gravado com sucesso. Você já pode começar a fazer as missões práticas!
+              ✅ Sucesso! Você já pode começar a fazer as missões práticas.
             </p>
           </div>
 
-          <Button size="lg" fullWidth onClick={handleFinish}>
+          <Button size="lg" fullWidth onClick={onComplete}>
             Ir para o Dashboard
           </Button>
 
-          {/* Console de logs (colapsado) */}
-          <details className="text-left">
-            <summary className="font-bold text-brand-brown cursor-pointer mb-2">
-              Ver logs da gravação
+          <details>
+            <summary className="font-bold text-brand-brown cursor-pointer">
+              Ver logs
             </summary>
-            <ConsoleOutput logs={logs} maxHeight="h-48" />
+            <div className="mt-4">
+              <ConsoleOutput logs={logs} maxHeight="h-48" />
+            </div>
           </details>
         </div>
       </div>
     );
   }
 
-  // ESTADO: ERROR
-  if (pageState === 'error' && currentError) {
+  if (pageState === 'error') {
     return (
-      <div className="min-h-screen bg-brand-light flex flex-col items-center justify-center p-6">
-        <div className="max-w-2xl w-full space-y-8">
-          <ErrorDisplay
-            error={currentError}
-            onRetry={currentError.retryable ? handleRetry : undefined}
-            onViewGuide={showGuide}
-          />
+      <div className="min-h-screen bg-brand-light flex items-center justify-center p-6">
+        <div className="max-w-2xl w-full space-y-6">
+          <div className="text-center">
+            <div className="text-6xl mb-4">❌</div>
+            <h1 className="text-3xl font-extrabold text-brand-brown">
+              Erro de Conexão
+            </h1>
+          </div>
 
-          {/* Console de logs */}
-          {logs.length > 0 && (
-            <details>
-              <summary className="font-bold text-brand-brown cursor-pointer mb-2">
-                Ver logs de debug
-              </summary>
-              <ConsoleOutput logs={logs} maxHeight="h-48" />
-            </details>
-          )}
+          <ConsoleOutput logs={logs} maxHeight="h-64" />
+
+          <div className="flex gap-4">
+            <Button size="lg" fullWidth onClick={handleRetry}>
+              🔄 Tentar Novamente
+            </Button>
+            <Button variant="outline" size="lg" fullWidth onClick={showGuide}>
+              📖 Ver Guia
+            </Button>
+          </div>
 
           {onBack && (
-            <Button variant="outline" size="lg" fullWidth onClick={onBack}>
+            <Button variant="outline" size="sm" fullWidth onClick={onBack}>
               ← Voltar
             </Button>
           )}
@@ -355,18 +383,10 @@ export const ESP32ConnectionPage: React.FC<ESP32ConnectionPageProps> = ({
     );
   }
 
-  // ESTADO: GUIDE
-  if (pageState === 'guide') {
-    return (
-      <div className="min-h-screen bg-brand-light flex flex-col items-center justify-center p-6">
-        <ConnectionGuide
-          onRetry={handleRetry}
-          onClose={onBack}
-        />
-      </div>
-    );
-  }
-
-  // Fallback
   return null;
 };
+
+// Helper (evita erro de referência antes de definir)
+function setConnected(value: boolean) {
+  // Mantido para compatibilidade com a lógica do open source
+}
