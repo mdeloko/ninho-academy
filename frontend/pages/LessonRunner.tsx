@@ -44,7 +44,7 @@ export const LessonRunner: React.FC<LessonRunnerProps> = ({ lesson, user, onComp
       };
     }
     return () => {
-      espService.disconnect();
+      espService.desconectar();
     };
   }, [step]);
 
