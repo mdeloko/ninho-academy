@@ -1,14 +1,14 @@
 export enum TipoPergunta {
-  MULTIPLA_ESCOLHA = 'MULTIPLE_CHOICE',
-  VERDADEIRO_FALSO = 'TRUE_FALSE',
-  ORDENACAO = 'ORDERING',
-  PREENCHER_CODIGO = 'CODE_FILL'
+  MULTIPLA_ESCOLHA = "MULTIPLE_CHOICE",
+  VERDADEIRO_FALSO = "TRUE_FALSE",
+  ORDENACAO = "ORDERING",
+  PREENCHER_CODIGO = "CODE_FILL",
 }
 
 export enum TipoLicao {
-  TEORIA = 'THEORY',
-  PRATICA = 'PRACTICE',
-  QUIZ = 'QUIZ'
+  TEORIA = "THEORY",
+  PRATICA = "PRACTICE",
+  QUIZ = "QUIZ",
 }
 
 export interface Pergunta {
@@ -74,7 +74,7 @@ export interface Conquista {
 }
 
 export interface TelemetriaESP {
-  type: 'TELEMETRY';
+  type: "TELEMETRY";
   userId: string;
   deviceId: string;
   timestamp: number;
@@ -84,7 +84,7 @@ export interface TelemetriaESP {
   };
 }
 
-export type StatusConexao = 'disconnected' | 'connecting' | 'connected' | 'error';
+export type StatusConexao = "disconnected" | "connecting" | "connected" | "error";
 
 // Manter compatibilidade com código existente
 export const QuestionType = TipoPergunta;
