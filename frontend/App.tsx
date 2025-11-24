@@ -12,6 +12,8 @@ import { Lesson, User } from "./types";
 import { ENDPOINTS } from "./config/api";
 import { progressService, type Progress } from "./services/progressService";
 
+import { missions } from "./data/missions";
+
 type Tela = "LANDING" | "AUTH_LOGIN" | "AUTH_REGISTER" | "AUTH_FORGOT" | "SETUP" | "SYNC" | "DASHBOARD" | "LESSON";
 
 const App: React.FC = () => {
@@ -31,12 +33,19 @@ const App: React.FC = () => {
     if (usuarioSalvo && tokenSalvo) {
       try {
         const usuarioRestaurado = JSON.parse(usuarioSalvo);
-        setUsuario(usuarioRestaurado);
 
         // Restaurar progresso também
         if (progressoSalvo) {
-          setProgresso(JSON.parse(progressoSalvo));
+          const prog = JSON.parse(progressoSalvo);
+          setProgresso(prog);
+
+          // Atualizar XP e Level do usuário com base no progresso persistido
+          usuarioRestaurado.xp = prog.totalXp;
+          // Opcional: se quiser guardar o level no objeto user também
+          // usuarioRestaurado.level = prog.level;
         }
+
+        setUsuario(usuarioRestaurado);
 
         // Ir direto para dashboard se ele já tinha trilha selecionada
         if (usuarioRestaurado.trilhaId) {
@@ -65,12 +74,13 @@ const App: React.FC = () => {
       conquistas: usuarioLogado.conquistas || [],
     };
 
-    setUsuario(usuarioCompleto);
-
     // Se já temos o progresso inicial (ex: registro), usar ele
     if (initialProgress) {
       setProgresso(initialProgress);
       localStorage.setItem("userProgress", JSON.stringify(initialProgress));
+
+      // Sincronizar XP do usuário com o progresso
+      usuarioCompleto.xp = initialProgress.totalXp;
     } else {
       // Carregar progresso do usuário (ex: login)
       try {
@@ -78,11 +88,17 @@ const App: React.FC = () => {
         if (prog) {
           setProgresso(prog);
           localStorage.setItem("userProgress", JSON.stringify(prog));
+
+          // Sincronizar XP do usuário com o progresso carregado
+          usuarioCompleto.xp = prog.totalXp;
         }
       } catch (erro) {
         console.error("[APP] Erro ao carregar progresso:", erro);
       }
     }
+
+    setUsuario(usuarioCompleto);
+    localStorage.setItem("user", JSON.stringify(usuarioCompleto));
 
     if (usuarioCompleto.trilhaId) {
       setTela("DASHBOARD");
@@ -135,6 +151,25 @@ const App: React.FC = () => {
       return;
     }
 
+    // --- LÓGICA DE PROTEÇÃO CONTRA REPETIÇÃO ---
+    // Encontrar o índice da missão atual na lista global
+    const missionIndex = missions.findIndex((m) => m.id === licaoAtiva.id);
+
+    // Obter o nível atual (que representa quantas missões já foram completadas)
+    // Se progresso for null, assume 0
+    const currentLevel = progresso?.level || 0;
+
+    // Se o índice da missão for menor que o nível atual, significa que o usuário
+    // já passou dessa fase (ex: Nível 2 tentando fazer Missão 0 ou 1).
+    // Nesse caso, não damos XP nem subimos de nível.
+    if (missionIndex < currentLevel) {
+      console.log(`[APP] Missão ${licaoAtiva.id} (Index ${missionIndex}) já completada anteriormente (Nível ${currentLevel}). XP não será atribuído.`);
+      setTela("DASHBOARD");
+      setLicaoAtiva(null);
+      return; // SAIR DA FUNÇÃO AQUI
+    }
+    // -------------------------------------------
+
     try {
       // Se não houver progresso em estado, buscar do servidor
       let prog = progresso;
@@ -158,15 +193,14 @@ const App: React.FC = () => {
       setProgresso(novoProgresso);
 
       // Atualizar usuário com novo XP e level
-      setUsuario((prev) =>
-        prev
-          ? {
-              ...prev,
-              xp: novoProgresso.totalXp,
-              licoesConcluidas: [...prev.licoesConcluidas, licaoAtiva.id],
-            }
-          : null
-      );
+      const novoUsuario = {
+        ...usuario,
+        xp: novoProgresso.totalXp,
+        licoesConcluidas: [...usuario.licoesConcluidas, licaoAtiva.id],
+      };
+
+      setUsuario(novoUsuario);
+      localStorage.setItem("user", JSON.stringify(novoUsuario)); // Persistir atualização do usuário
 
       setMostrarSubiuNivel(true);
       setTimeout(() => setMostrarSubiuNivel(false), 3000);
