@@ -13,12 +13,16 @@ export default defineConfig(({ mode }) => ({
       allow: ['.', '..'],
     },
     proxy: {
-      "/api": {
-        target: "http://backend:3001",
+      "/users": {
+        target: "http://backend:3000",
         changeOrigin: true,
       },
-      "/health": {
-        target: "http://backend:3001",
+      "/progress": {
+        target: "http://backend:3000",
+        changeOrigin: true,
+      },
+      "/test": {
+        target: "http://backend:3000",
         changeOrigin: true,
       },
     },

@@ -21,11 +21,13 @@ services:
   backend:
     image: node:20
     working_dir: /app/backend
-    command: sh -c "npm ci && npx prisma generate && npx prisma db push && npm run dev"
+    command: sh -c "npm ci && npm run dev"
     ports:
-      - "6002:3001"
+      - "6002:3000"
     environment:
-      DATABASE_URL: file:./dev.db
+      PORT: 3000
+      DATABASE_TYPE: sqlite
+      DATABASE_NAME: database.sqlite
       NODE_ENV: development
     volumes:
       - ./backend:/app/backend
