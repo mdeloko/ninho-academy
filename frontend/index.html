@@ -45,13 +45,18 @@
         width: 8px;
       }
       ::-webkit-scrollbar-track {
-        background: #FEF3C7; 
+        background: #FEF3C7;
       }
       ::-webkit-scrollbar-thumb {
-        background: #EAB308; 
+        background: #EAB308;
         border-radius: 4px;
       }
     </style>
+
+    <!-- ESP Web Flasher - Biblioteca para flash via Web Serial API -->
+    <script module>
+      window.esptoolPackage = import("https://unpkg.com/esp-web-flasher@5.1.4/dist/web/index.js?module");
+    </script>
   <script type="importmap">
 {
   "imports": {
