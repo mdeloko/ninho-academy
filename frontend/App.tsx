@@ -112,6 +112,7 @@ const App: React.FC = () => {
 
     const usuarioAtualizado = { ...usuario, trilhaId, temESP32 };
     setUsuario(usuarioAtualizado);
+    localStorage.setItem("user", JSON.stringify(usuarioAtualizado));
 
     // Removido: chamada API para ESP32 status
 
