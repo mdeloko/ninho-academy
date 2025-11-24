@@ -14,7 +14,7 @@ export default class ProgressRepository {
                 "INSERT INTO Progresso (id_usuario, xp_total, nivel) VALUES (?, ?, ?)"
             );
             
-            stmt.run(progressData.userId, 0, 1, function (this: sqlite3.RunResult, err: Error | null) {
+            stmt.run(progressData.userId, 0, 0, function (this: sqlite3.RunResult, err: Error | null) {
                 if (err) {
                     reject(err);
                 } else {
@@ -22,7 +22,7 @@ export default class ProgressRepository {
                         id: this.lastID,
                         userId: progressData.userId,
                         totalXp: 0,
-                        level: 1
+                        level: 0
                     }));
                 }
                 stmt.finalize();
