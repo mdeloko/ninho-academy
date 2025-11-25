@@ -260,6 +260,7 @@ export const ESP32ConnectionPage: React.FC<ESP32ConnectionPageProps> = ({ onComp
 
       let version: string | null = null;
       const MAX_ATTEMPTS = 3; // Tenta 3 vezes
+      let buffer = ""; // Buffer para acumular dados parciais
 
       for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
         addOutput(`Tentativa ${attempt}/${MAX_ATTEMPTS} de verificar versão...`);
@@ -282,17 +283,22 @@ export const ESP32ConnectionPage: React.FC<ESP32ConnectionPageProps> = ({ onComp
             continue;
           }
 
-          // Log do que recebemos (para debug)
-          const receivedData = result.value;
-          console.log("[DEBUG] Recebido:", receivedData);
+          // Acumula no buffer
+          buffer += result.value;
 
-          // Processa linhas recebidas
-          const lines = receivedData.split("\n");
+          // Processa linhas completas
+          const lines = buffer.split("\n");
+
+          // O último elemento é o resto (incompleto) ou vazio (se terminou com \n)
+          buffer = lines.pop() || "";
+
           for (const line of lines) {
-            if (line.trim()) {
+            const trimmedLine = line.trim();
+            if (trimmedLine) {
+              console.log("[DEBUG] Processando linha:", trimmedLine);
               try {
                 // Tenta encontrar JSON válido mesmo se estiver misturado com logs
-                const jsonMatch = line.match(/\{.*\}/);
+                const jsonMatch = trimmedLine.match(/\{.*\}/);
                 if (jsonMatch) {
                   const response = JSON.parse(jsonMatch[0]);
                   console.log("[DEBUG] JSON parseado:", response);
@@ -303,7 +309,7 @@ export const ESP32ConnectionPage: React.FC<ESP32ConnectionPageProps> = ({ onComp
                     break;
                   }
                 } else {
-                  console.log("[DEBUG] Linha não-JSON:", line);
+                  console.log("[DEBUG] Linha não-JSON:", trimmedLine);
                 }
               } catch (e) {
                 // Não é JSON - pode ser mensagem de inicialização do ESP32
