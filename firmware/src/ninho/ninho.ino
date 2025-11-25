@@ -61,6 +61,12 @@ int potValue = 0;
 // Quando o botão é pressionado, esse estado inverte (liga/desliga)
 bool toggleState = false;
 
+// Variáveis para o Buzzer (Missão 3)
+int melody[] = {262, 294, 330, 349, 392, 440, 494, 523}; // C, D, E, F, G, A, B, C
+int noteDuration = 500;
+unsigned long lastNoteTime = 0;
+int currentNote = 0;
+
 // ========================================
 // MÁQUINA DE ESTADOS (Missões 4 e 5)
 // ========================================
@@ -81,6 +87,8 @@ void setup() {
 
     // Configura os pinos conforme o hardware
     pinMode(PIN_LED, OUTPUT);
+    pinMode(PIN_LED_2, OUTPUT);
+    pinMode(PIN_BUZZER, OUTPUT);
 
     // Botão configurado como INPUT (assumimos resistor pull-down externo)
     // Se usar pull-up interno (INPUT_PULLUP), a lógica HIGH/LOW seria invertida
@@ -109,6 +117,8 @@ void handleMissionLogic() {
     // Quando não há missão ativa, mantemos o LED apagado
     if (currentMission == "IDLE") {
         digitalWrite(PIN_LED, LOW);
+        digitalWrite(PIN_LED_2, LOW);
+        noTone(PIN_BUZZER);
     }
 
     // ==================================================
@@ -133,6 +143,30 @@ void handleMissionLogic() {
 
             // Aplica o novo estado ao pino
             digitalWrite(PIN_LED, ledState ? HIGH : LOW);
+        }
+    }
+
+    // ==================================================
+    // MISSÃO 2: LED COM RESISTOR 1K (PISCANDO 2s)
+    // ==================================================
+    else if (currentMission == "MISSION_2_LED_1K") {
+        // Pisca a cada 2 segundos (2000ms)
+        if (now - lastBlink >= 2000) {
+            lastBlink = now;
+            ledState = !ledState;
+            digitalWrite(PIN_LED_2, ledState ? HIGH : LOW);
+        }
+    }
+
+    // ==================================================
+    // MISSÃO 3: BUZZER (MÚSICA)
+    // ==================================================
+    else if (currentMission == "MISSION_3_BUZZER") {
+        if (now - lastNoteTime >= noteDuration) {
+            lastNoteTime = now;
+            tone(PIN_BUZZER, melody[currentNote], noteDuration);
+            currentNote++;
+            if (currentNote >= 8) currentNote = 0;
         }
     }
 
