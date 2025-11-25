@@ -16,6 +16,9 @@ class ESPService {
   private readableStreamClosed: Promise<void> | null = null;
   private writableStreamClosed: Promise<void> | null = null;
 
+  // AbortController para cancelar streams
+  private abortController: AbortController | null = null;
+
   private _status: ConnectionStatus = "disconnected";
 
   // Callbacks para eventos
@@ -48,14 +51,15 @@ class ESPService {
       }
 
       this.setStatus("connected");
+      this.abortController = new AbortController();
 
       // Configura reader/writer para comunicação
       const decoder = new TextDecoderStream();
-      this.readableStreamClosed = this.port.readable.pipeTo(decoder.writable);
+      this.readableStreamClosed = this.port.readable.pipeTo(decoder.writable, { signal: this.abortController.signal });
       this.reader = decoder.readable.getReader();
 
       const encoder = new TextEncoderStream();
-      this.writableStreamClosed = encoder.readable.pipeTo(this.port.writable);
+      this.writableStreamClosed = encoder.readable.pipeTo(this.port.writable, { signal: this.abortController.signal });
       this.writer = encoder.writable.getWriter();
 
       // Inicia leitura em background
@@ -70,13 +74,26 @@ class ESPService {
    * Conecta ao ESP32 via Serial (para comunicação, não flash)
    */
   async conectar(): Promise<void> {
+    // 1. Se já estamos marcados como conectados e temos porta, reutiliza!
+    if (this.isConnected()) {
+      console.log("[ESPService] Já conectado, reutilizando conexão.");
+      this.setStatus("connected");
+      return;
+    }
+
+    // 2. Se tem porta mas status estava desconectado, tenta recuperar
     if (this.port) {
-      // Se já está conectado, apenas notifica sucesso
       if (this.port.readable) {
+        console.log("[ESPService] Porta existe e é legível, recuperando.");
         this.setStatus("connected");
+        // Garante que o loop de leitura esteja rodando
+        if (!this.reader) {
+          this.lerSerial();
+        }
         return;
       }
-      // Se tem objeto porta mas não está legível, tenta limpar
+      // Se a porta existe mas não é legível, aí sim limpamos
+      console.warn("[ESPService] Porta existe mas não é legível, limpando...");
       await this.desconectar();
     }
 
@@ -89,14 +106,15 @@ class ESPService {
       });
 
       this.setStatus("connected");
+      this.abortController = new AbortController();
 
       // Configura reader/writer para comunicação
       const decoder = new TextDecoderStream();
-      this.readableStreamClosed = this.port.readable.pipeTo(decoder.writable);
+      this.readableStreamClosed = this.port.readable.pipeTo(decoder.writable, { signal: this.abortController.signal });
       this.reader = decoder.readable.getReader();
 
       const encoder = new TextEncoderStream();
-      this.writableStreamClosed = encoder.readable.pipeTo(this.port.writable);
+      this.writableStreamClosed = encoder.readable.pipeTo(this.port.writable, { signal: this.abortController.signal });
       this.writer = encoder.writable.getWriter();
 
       // Inicia leitura em background
@@ -160,17 +178,23 @@ class ESPService {
     try {
       // 1. Cancel Reader
       if (this.reader) {
-        await this.reader.cancel();
+        await this.reader.cancel().catch(() => {});
         this.reader = null;
       }
 
       // 2. Close Writer
       if (this.writer) {
-        await this.writer.close();
+        await this.writer.close().catch(() => {});
         this.writer = null;
       }
 
-      // 3. Wait for pipes to close
+      // 3. Abort pipes
+      if (this.abortController) {
+        this.abortController.abort();
+        this.abortController = null;
+      }
+
+      // 4. Wait for pipes to close
       if (this.readableStreamClosed) {
         await this.readableStreamClosed.catch(() => {}); // Ignore errors
         this.readableStreamClosed = null;
@@ -180,7 +204,7 @@ class ESPService {
         this.writableStreamClosed = null;
       }
 
-      // 4. Close Port
+      // 5. Close Port
       if (this.port) {
         await this.port.close();
         this.port = null;
