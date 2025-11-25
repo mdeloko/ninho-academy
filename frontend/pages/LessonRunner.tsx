@@ -36,12 +36,21 @@ export const LessonRunner: React.FC<LessonRunnerProps> = ({ lesson, user, onComp
 
   useEffect(() => {
     if (step === "PRACTICE") {
-      // Verifica se já está conectado
-      setIsConnected(espService.isConnected());
+      // Verifica estado inicial
+      const checkInitialState = () => {
+        const connected = espService.isConnected();
+        console.log("[LessonRunner] Verificando conexão inicial:", connected);
+        setIsConnected(connected);
+      };
 
+      checkInitialState();
+
+      // Inscreve para mudanças
       espService.onStatusChange = (status) => {
+        console.log("[LessonRunner] Status mudou:", status);
         setIsConnected(status === "connected");
       };
+
       espService.onTelemetry = (data) => {
         setTelemetry(data);
       };
