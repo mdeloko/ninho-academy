@@ -291,17 +291,23 @@ export const ESP32ConnectionPage: React.FC<ESP32ConnectionPageProps> = ({ onComp
           for (const line of lines) {
             if (line.trim()) {
               try {
-                const response = JSON.parse(line);
-                console.log("[DEBUG] JSON parseado:", response);
+                // Tenta encontrar JSON válido mesmo se estiver misturado com logs
+                const jsonMatch = line.match(/\{.*\}/);
+                if (jsonMatch) {
+                  const response = JSON.parse(jsonMatch[0]);
+                  console.log("[DEBUG] JSON parseado:", response);
 
-                if (response.type === "VERSION") {
-                  version = response.version;
-                  addOutput(`✓ Versão encontrada: ${version}`);
-                  break;
+                  if (response.type === "VERSION") {
+                    version = response.version;
+                    addOutput(`✓ Versão encontrada: ${version}`);
+                    break;
+                  }
+                } else {
+                  console.log("[DEBUG] Linha não-JSON:", line);
                 }
               } catch (e) {
                 // Não é JSON - pode ser mensagem de inicialização do ESP32
-                console.log("[DEBUG] Linha não-JSON:", line);
+                console.log("[DEBUG] Erro parse:", e);
               }
             }
           }
