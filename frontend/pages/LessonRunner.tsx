@@ -96,7 +96,27 @@ export const LessonRunner: React.FC<LessonRunnerProps> = ({ lesson, user, onComp
   };
 
   const handleFinish = async (xp?: number) => {
+    // Se estiver conectado e rodando prática, para a missão no firmware
+    if (isConnected && practiceStatus === "running") {
+      try {
+        await espService.enviarComando("SET_MISSION", { missionId: "IDLE" });
+      } catch (e) {
+        console.error("Erro ao parar missão:", e);
+      }
+    }
     await onComplete(xp || lesson.xpReward || 50);
+  };
+
+  const handleExit = async () => {
+    // Se estiver conectado e rodando prática, para a missão no firmware antes de sair
+    if (isConnected && practiceStatus === "running") {
+      try {
+        await espService.enviarComando("SET_MISSION", { missionId: "IDLE" });
+      } catch (e) {
+        console.error("Erro ao parar missão:", e);
+      }
+    }
+    onExit();
   };
 
   const renderTheory = () => (
@@ -281,7 +301,7 @@ export const LessonRunner: React.FC<LessonRunnerProps> = ({ lesson, user, onComp
     <div className="min-h-screen bg-white flex flex-col">
       {/* Header */}
       <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-        <button onClick={onExit} className="text-gray-400 hover:text-brand-brown font-bold">
+        <button onClick={handleExit} className="text-gray-400 hover:text-brand-brown font-bold">
           ✕ Sair
         </button>
         <div className="font-bold text-brand-brown opacity-50">
