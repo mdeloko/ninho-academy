@@ -64,15 +64,15 @@ void loop() {
       {
         id: "q1",
         question: "Qual é a principal diferença entre setup() e loop()?",
-        options: ["setup() é mais importante que loop().", "setup() roda uma vez, loop() roda continuamente.", "setup() é apenas para ESP32, loop() é para todos os microcontroladores."],
-        correctIndex: 1,
+        options: ["setup() roda uma vez, loop() roda continuamente.", "setup() é mais importante que loop().", "setup() é apenas para ESP32, loop() é para todos os microcontroladores."],
+        correctIndex: 0,
         feedback: "Exato! setup() é executado uma única vez na inicialização, enquanto loop() fica se repetindo infinitamente enquanto o dispositivo está ligado.",
       },
       {
         id: "q2",
         question: "O que significa um pino estar em estado HIGH?",
-        options: ["O pino está desligado (0V).", "O pino está ligado (5V ou 3.3V, dependendo do microcontrolador).", "O pino está danificado."],
-        correctIndex: 1,
+        options: ["O pino está desligado (0V).", "O pino está danificado.", "O pino está ligado (5V ou 3.3V, dependendo do microcontrolador)."],
+        correctIndex: 2,
         feedback: "HIGH significa que o pino está energizado com a tensão de funcionamento (geralmente 3.3V no ESP32). Isso é o estado 'ligado'.",
       },
       {
@@ -85,8 +85,8 @@ void loop() {
       {
         id: "q4",
         question: "O que significa IoT?",
-        options: ["Input/Output Technology", "Internet of Things (Internet das Coisas)", "Integrated Operating Technology"],
-        correctIndex: 1,
+        options: ["Internet of Things (Internet das Coisas)", "Input/Output Technology", "Integrated Operating Technology"],
+        correctIndex: 0,
         feedback: "IoT é a sigla para 'Internet of Things'. Refere-se à rede de dispositivos conectados à internet que coletam e compartilham dados.",
       },
     ],
@@ -173,118 +173,104 @@ void loop() {
   },
   {
     id: "2",
-    title: "Missão 2 – Botão (Entrada Digital)",
-    description: "Aprenda a ler um botão e tomar decisões.",
+    title: "Missão 2 – LED Externo (Resistor)",
+    description: "Aprenda a conectar um LED externo com resistor e controlar seu tempo.",
     theory: {
-      title: "Lendo um botão com o ESP32",
+      title: "LEDs Externos e Resistores",
       content: [
-        "Um botão é lido em um pino configurado como **entrada**: `pinMode(BUTTON_PIN, INPUT);`.",
-        "Para ler o estado: `int estado = digitalRead(BUTTON_PIN);` (retorna HIGH ou LOW).",
-        "Usamos `if / else` para decidir o que fazer.",
-        "Comentário: Optamos por INPUT simples assumindo resistor externo (pull-down). Se fosse interno, usaríamos INPUT_PULLUP e inverteríamos a lógica de leitura.",
+        "Para conectar um LED externo, precisamos de um **resistor** para limitar a corrente e não queimar o componente.",
+        "Nesta missão, usaremos um resistor de **1kΩ** (marrom, preto, vermelho) e um LED conectado a um pino diferente.",
+        "Vamos programar o LED para piscar em um intervalo mais lento (2 segundos).",
       ],
-      codeSnippet: `if (estado == HIGH) {
-  // botão apertado
-} else {
-  // botão solto
-}`,
+      codeSnippet: `// Pisca a cada 2 segundos
+digitalWrite(PIN_LED_2, HIGH);
+delay(2000);
+digitalWrite(PIN_LED_2, LOW);
+delay(2000);`,
     },
     quizzes: [
       {
         id: "q1",
-        question: "O que esse programa faz?",
-        codeSnippet: `if (estado == HIGH) {
-  digitalWrite(LED_PIN, HIGH);
-} else {
-  digitalWrite(LED_PIN, LOW);
-}`,
-        options: ["O LED acende só enquanto o botão está apertado.", "O LED pisca sozinho.", "O botão liga o LED uma vez e nunca mais desliga."],
-        correctIndex: 0,
-        feedback: "Aqui o LED simplesmente espelha o botão: HIGH (apertado) mantém o LED aceso enquanto durar o pressionamento.",
+        question: "Qual a função do resistor no circuito do LED?",
+        options: ["Aumentar o brilho.", "Limitar a corrente para proteger o LED.", "Fazer o LED piscar."],
+        correctIndex: 1,
+        feedback: "O resistor é essencial para evitar que corrente excessiva passe pelo LED e o queime.",
       },
       {
         id: "q2",
-        question: "Complete a condição do if:",
-        codeSnippet: `int valor = digitalRead(BUTTON_PIN);
-if (__________) {
-  // botão apertado
-}`,
-        options: ["valor == HIGH", "valor == LOW", "digitalRead(BUTTON_PIN);"],
-        correctIndex: 0,
-        feedback: "A condição compara o valor lido com HIGH para detectar o momento em que o botão está fisicamente pressionado.",
+        question: "Se aumentarmos o delay para 2000, o que acontece?",
+        options: ["O LED pisca mais rápido.", "O LED pisca mais devagar (a cada 2 segundos).", "O LED não acende."],
+        correctIndex: 1,
+        feedback: "2000 milissegundos equivalem a 2 segundos. O intervalo será maior.",
       },
       {
         id: "q3",
-        question: "Qual o modo correto do pino para um botão?",
-        codeSnippet: "pinMode(BUTTON_PIN, ______ );",
-        options: ["OUTPUT", "INPUT", "INPUT_PULLUP"],
-        correctIndex: 1,
-        feedback: "Botão é elemento de entrada: configuramos INPUT para poder ler se há nível alto ou baixo naquele pino.",
+        question: "Onde conectamos a perna menor do LED?",
+        options: ["No pino digital.", "No 3V3.", "No GND (Terra)."],
+        correctIndex: 2,
+        feedback: "A perna menor (cátodo) deve ser conectada ao GND (terra) para fechar o circuito.",
       },
     ],
     practice: {
-      id: "MISSION_2_TOGGLE",
-      title: "Desafio Prático: Interruptor",
-      description: "Transforme o botão em um interruptor de luz (toggle).",
-      checklist: ["Mantenha o LED no pino 2.", "Conecte um botão no pino 4 (D4) e no 3V3.", "Adicione um resistor de pull-down (10k) entre o pino 4 e o GND (se necessário)."],
-      firmwareCommand: "MISSION_2_TOGGLE",
+      id: "MISSION_2_LED_1K",
+      title: "Desafio Prático: LED Externo",
+      description: "Monte um circuito com LED externo e resistor de 1kΩ.",
+      checklist: ["Conecte o LED (perna maior) no pino 5.", "Conecte o resistor de 1kΩ na perna menor do LED.", "Conecte a outra ponta do resistor no GND.", "O LED deve piscar a cada 2 segundos."],
+      firmwareCommand: "MISSION_2_LED_1K",
     },
     simulation: {
-      title: "Simulação: Botão",
-      content: "Ao clicar no botão virtual, o LED deve acender ou apagar. No código, usamos uma variável para lembrar se a luz estava acesa ou não.",
+      title: "Simulação: LED Externo",
+      content: "Imagine conectar os componentes na protoboard. O código fará o pino 5 ligar e desligar.",
     },
   },
   {
     id: "3",
-    title: "Missão 3 – Potenciômetro (ADC)",
-    description: "Leia valores analógicos e controle brilho.",
+    title: "Missão 3 – Buzzer (Música)",
+    description: "Faça o ESP32 tocar uma melodia usando um Buzzer.",
     theory: {
-      title: "Lendo valores que mudam",
+      title: "Produzindo Som com Buzzer",
       content: [
-        "Sinais **analógicos** variam continuamente (não é só ligado/desligado).",
-        "O ESP32 lê valores de 0 a 4095 com `analogRead(PIN);`.",
-        "Podemos usar `map()` para converter esse valor para brilho (0-255).",
-        "Comentário: Usamos map() porque o ADC do ESP32 fornece 12 bits (0–4095); o PWM comum trabalha em 8 bits (0–255). Isso deixa a transição de brilho suave sem perder resolução útil.",
+        "Um **Buzzer** é um componente que produz som quando energizado com uma frequência específica.",
+        "Usamos a função `tone(pino, frequencia, duracao)` para tocar notas musicais.",
+        "Podemos criar melodias sequenciando várias notas.",
       ],
-      codeSnippet: `int leitura = analogRead(POT_PIN);
-int brilho = map(leitura, 0, 4095, 0, 255);
-analogWrite(LED_PIN, brilho);`,
+      codeSnippet: `tone(BUZZER_PIN, 262, 500); // Toca Dó (C4) por 500ms
+delay(500);
+tone(BUZZER_PIN, 294, 500); // Toca Ré (D4) por 500ms`,
     },
     quizzes: [
       {
         id: "q1",
-        question: "Qual linha lê o valor do potenciômetro?",
-        options: ["Serial.begin(115200);", "int leitura = analogRead(POT_PIN);", "Serial.println(leitura);"],
-        correctIndex: 1,
-        feedback: "A função analogRead obtém a amostra do conversor ADC (0–4095) daquele pino analógico.",
+        question: "Qual função usamos para gerar som no Buzzer?",
+        options: ["digitalWrite()", "analogWrite()", "tone()"],
+        correctIndex: 2,
+        feedback: "A função tone() gera um sinal PWM na frequência desejada para fazer o buzzer vibrar e produzir som.",
       },
       {
         id: "q2",
-        question: "Complete para ler o pino:",
-        codeSnippet: "int valor = __________(POT_PIN);",
-        options: ["digitalRead", "analogRead", "digitalWrite"],
+        question: "O que o segundo parâmetro de tone() define?",
+        options: ["O pino.", "A frequência (nota musical).", "A duração."],
         correctIndex: 1,
-        feedback: "Potenciômetro varia tensão continuamente: por isso usamos analogRead em vez de digitalRead.",
+        feedback: "tone(pino, frequencia, duracao). O segundo parâmetro é a frequência em Hertz.",
       },
       {
         id: "q3",
-        question: "Qual o valor máximo para o PWM (brilho)?",
-        codeSnippet: "map(leitura, 0, 4095, 0, ______ );",
-        options: ["1", "255", "4095"],
+        question: "O buzzer deve ser conectado a qual tipo de pino?",
+        options: ["Apenas analógico.", "Qualquer pino digital capaz de saída.", "Apenas pino 1."],
         correctIndex: 1,
-        feedback: "O canal de PWM trabalha normalmente em 8 bits: convertemos para 0–255 para ter resolução compatível de brilho.",
+        feedback: "Podemos usar qualquer pino digital configurado como saída para controlar o buzzer.",
       },
     ],
     practice: {
-      id: "MISSION_3_PWM",
-      title: "Desafio Prático: Dimmer",
-      description: "Controle o brilho do LED girando o potenciômetro.",
-      checklist: ["LED no pino 2.", "Potenciômetro: pino do meio no pino 34 (D34).", "Pinos da ponta do potenciômetro no 3V3 e GND."],
-      firmwareCommand: "MISSION_3_PWM",
+      id: "MISSION_3_BUZZER",
+      title: "Desafio Prático: Tocando Música",
+      description: "Conecte o Buzzer e ouça a melodia.",
+      checklist: ["Conecte o pino positivo do Buzzer no pino 18.", "Conecte o pino negativo do Buzzer no GND.", "Aguarde a melodia começar!"],
+      firmwareCommand: "MISSION_3_BUZZER",
     },
     simulation: {
-      title: "Simulação: Dimmer",
-      content: "Imagine um slider. No mínimo (0), o LED apaga. No máximo (4095), o LED brilha forte (255).",
+      title: "Simulação: Buzzer",
+      content: "O buzzer vibrará nas frequências das notas musicais, criando a melodia programada.",
     },
   },
   {
