@@ -36,6 +36,9 @@ export const LessonRunner: React.FC<LessonRunnerProps> = ({ lesson, user, onComp
 
   useEffect(() => {
     if (step === "PRACTICE") {
+      // Verifica se já está conectado
+      setIsConnected(espService.isConnected());
+
       espService.onStatusChange = (status) => {
         setIsConnected(status === "connected");
       };
@@ -44,7 +47,9 @@ export const LessonRunner: React.FC<LessonRunnerProps> = ({ lesson, user, onComp
       };
     }
     return () => {
-      espService.desconectar();
+      // NÃO desconecta ao sair, apenas limpa os listeners
+      espService.onStatusChange = undefined;
+      espService.onTelemetry = undefined;
     };
   }, [step]);
 

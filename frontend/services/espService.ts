@@ -11,7 +11,23 @@ class ESPService {
   private port: any = null;
   private reader: ReadableStreamDefaultReader | null = null;
   private writer: WritableStreamDefaultWriter | null = null;
+
+  // Promises para rastrear fechamento dos streams
+  private readableStreamClosed: Promise<void> | null = null;
+  private writableStreamClosed: Promise<void> | null = null;
+
   private _status: ConnectionStatus = "disconnected";
+
+  // Callbacks para eventos
+  public onStatusChange?: (status: ConnectionStatus) => void;
+  public onTelemetry?: (data: any) => void;
+
+  private setStatus(status: ConnectionStatus) {
+    this._status = status;
+    if (this.onStatusChange) {
+      this.onStatusChange(status);
+    }
+  }
 
   /**
    * Conecta ao ESP32 usando uma porta já aberta (ex: vinda do setup)
@@ -31,21 +47,21 @@ class ESPService {
         await this.port.open({ baudRate: 115200 });
       }
 
-      this._status = "connected";
+      this.setStatus("connected");
 
       // Configura reader/writer para comunicação
       const decoder = new TextDecoderStream();
-      const inputDone = this.port.readable.pipeTo(decoder.writable);
+      this.readableStreamClosed = this.port.readable.pipeTo(decoder.writable);
       this.reader = decoder.readable.getReader();
 
       const encoder = new TextEncoderStream();
-      const outputDone = encoder.readable.pipeTo(this.port.writable);
+      this.writableStreamClosed = encoder.readable.pipeTo(this.port.writable);
       this.writer = encoder.writable.getWriter();
 
       // Inicia leitura em background
       this.lerSerial();
     } catch (erro) {
-      this._status = "error";
+      this.setStatus("error");
       throw new Error(`Falha ao conectar com porta existente: ${erro}`);
     }
   }
@@ -55,7 +71,13 @@ class ESPService {
    */
   async conectar(): Promise<void> {
     if (this.port) {
-      throw new Error("ESP32 já está conectado.");
+      // Se já está conectado, apenas notifica sucesso
+      if (this.port.readable) {
+        this.setStatus("connected");
+        return;
+      }
+      // Se tem objeto porta mas não está legível, tenta limpar
+      await this.desconectar();
     }
 
     try {
@@ -66,21 +88,21 @@ class ESPService {
         baudRate: 115200,
       });
 
-      this._status = "connected";
+      this.setStatus("connected");
 
       // Configura reader/writer para comunicação
       const decoder = new TextDecoderStream();
-      const inputDone = this.port.readable.pipeTo(decoder.writable);
+      this.readableStreamClosed = this.port.readable.pipeTo(decoder.writable);
       this.reader = decoder.readable.getReader();
 
       const encoder = new TextEncoderStream();
-      const outputDone = encoder.readable.pipeTo(this.port.writable);
+      this.writableStreamClosed = encoder.readable.pipeTo(this.port.writable);
       this.writer = encoder.writable.getWriter();
 
       // Inicia leitura em background
       this.lerSerial();
     } catch (erro) {
-      this._status = "error";
+      this.setStatus("error");
       throw new Error(`Falha ao conectar: ${erro}`);
     }
   }
@@ -89,6 +111,8 @@ class ESPService {
    * Loop de leitura da porta serial
    */
   private async lerSerial() {
+    let buffer = "";
+
     while (this.port && this.port.readable && this.reader) {
       try {
         const { value, done } = await this.reader.read();
@@ -97,22 +121,29 @@ class ESPService {
           break;
         }
         if (value) {
-          // Processa dados recebidos (pode ser JSON ou logs)
-          console.log("[ESP32 RX]", value);
+          // Acumula no buffer
+          buffer += value;
 
-          // Tenta parsear JSON se for uma linha completa
-          // Nota: Em produção, precisaria de um buffer para juntar chunks
-          try {
-            const lines = value.split("\n");
-            for (const line of lines) {
-              if (line.trim().startsWith("{")) {
-                const data = JSON.parse(line);
+          // Processa linhas completas
+          const lines = buffer.split("\n");
+
+          // O último elemento é o resto (incompleto) ou vazio
+          buffer = lines.pop() || "";
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+              try {
+                const data = JSON.parse(trimmed);
                 console.log("[ESP32 JSON]", data);
-                // Aqui você pode disparar eventos ou atualizar estado global
+
+                if (this.onTelemetry) {
+                  this.onTelemetry(data);
+                }
+              } catch (e) {
+                // Ignora erro de parse
               }
             }
-          } catch (e) {
-            // Ignora erros de parse, pode ser apenas log de debug
           }
         }
       } catch (e) {
@@ -126,22 +157,46 @@ class ESPService {
    * Desconecta do ESP32
    */
   async desconectar(): Promise<void> {
-    if (this.reader) {
-      await this.reader.cancel();
-      this.reader = null;
-    }
+    try {
+      // 1. Cancel Reader
+      if (this.reader) {
+        await this.reader.cancel();
+        this.reader = null;
+      }
 
-    if (this.writer) {
-      await this.writer.close();
-      this.writer = null;
-    }
+      // 2. Close Writer
+      if (this.writer) {
+        await this.writer.close();
+        this.writer = null;
+      }
 
-    if (this.port) {
-      await this.port.close();
-      this.port = null;
-    }
+      // 3. Wait for pipes to close
+      if (this.readableStreamClosed) {
+        await this.readableStreamClosed.catch(() => {}); // Ignore errors
+        this.readableStreamClosed = null;
+      }
+      if (this.writableStreamClosed) {
+        await this.writableStreamClosed.catch(() => {}); // Ignore errors
+        this.writableStreamClosed = null;
+      }
 
-    this._status = "disconnected";
+      // 4. Close Port
+      if (this.port) {
+        await this.port.close();
+        this.port = null;
+      }
+    } catch (e) {
+      console.warn("Erro ao desconectar:", e);
+    } finally {
+      this.setStatus("disconnected");
+    }
+  }
+
+  /**
+   * Envia comando genérico
+   */
+  async enviarComando(type: string, payload: any = {}): Promise<void> {
+    await this.enviarJSON({ type, ...payload });
   }
 
   /**
