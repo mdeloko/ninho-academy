@@ -14,6 +14,43 @@ class ESPService {
   private _status: ConnectionStatus = "disconnected";
 
   /**
+   * Conecta ao ESP32 usando uma porta já aberta (ex: vinda do setup)
+   */
+  async conectarComPorta(portaExistente: any): Promise<void> {
+    if (this.port) {
+      // Se já tem porta, verifica se é a mesma
+      if (this.port === portaExistente) return;
+      await this.desconectar();
+    }
+
+    try {
+      this.port = portaExistente;
+
+      // Se a porta não estiver aberta, abre
+      if (!this.port.readable) {
+        await this.port.open({ baudRate: 115200 });
+      }
+
+      this._status = "connected";
+
+      // Configura reader/writer para comunicação
+      const decoder = new TextDecoderStream();
+      const inputDone = this.port.readable.pipeTo(decoder.writable);
+      this.reader = decoder.readable.getReader();
+
+      const encoder = new TextEncoderStream();
+      const outputDone = encoder.readable.pipeTo(this.port.writable);
+      this.writer = encoder.writable.getWriter();
+
+      // Inicia leitura em background
+      this.lerSerial();
+    } catch (erro) {
+      this._status = "error";
+      throw new Error(`Falha ao conectar com porta existente: ${erro}`);
+    }
+  }
+
+  /**
    * Conecta ao ESP32 via Serial (para comunicação, não flash)
    */
   async conectar(): Promise<void> {

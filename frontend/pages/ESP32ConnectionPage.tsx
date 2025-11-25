@@ -3,12 +3,13 @@
  * Mantém a mesma lógica de conexão e flash que funciona no exemplo
  */
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Button } from "../components/ui/Button";
 import { ConsoleOutput } from "../components/esp/ConsoleOutput";
 import { ConnectionGuide } from "../components/esp/ConnectionGuide";
 import { connectESP, connectESPWithPort, formatMacAddr, sleep, supported } from "../lib/esptool";
 import { FIRMWARE_CONFIG } from "../config/firmware";
+import { espService } from "../services/espService";
 
 type PageState = "initial" | "checking_version" | "connecting" | "connected" | "flashing" | "complete" | "error" | "guide";
 
@@ -26,9 +27,41 @@ export const ESP32ConnectionPage: React.FC<ESP32ConnectionPageProps> = ({ onComp
   const [flashProgress, setFlashProgress] = useState<number>(0);
   const [currentVersion, setCurrentVersion] = useState<string | null>(null);
 
+  // Referência para a porta serial selecionada
+  const selectedPortRef = useRef<any>(null);
+
   // Adiciona log (EXATO DO OPEN SOURCE)
   const addOutput = (msg: string) => {
     setLogs((prev) => [...prev, msg]);
+  };
+
+  // Função auxiliar para finalizar e passar a conexão para o serviço global
+  const finishAndKeepConnection = async (callback?: () => void) => {
+    if (!callback) return;
+
+    try {
+      // Se tiver stub ativo, desconecta para liberar a porta
+      if (espStub) {
+        // Tenta desconectar suavemente
+        try {
+          await espStub.disconnect();
+          await espStub.port.close();
+        } catch (e) {
+          console.warn("Erro ao fechar stub:", e);
+        }
+      }
+
+      // Se temos uma porta selecionada, passa para o espService
+      if (selectedPortRef.current) {
+        console.log("Passando porta para espService...");
+        await espService.conectarComPorta(selectedPortRef.current);
+        console.log("Porta conectada no espService!");
+      }
+    } catch (e) {
+      console.error("Erro ao transferir conexão:", e);
+    }
+
+    callback();
   };
 
   // Conecta ao ESP32 - NOVO FLUXO: Solicita porta UMA VEZ e verifica versão
@@ -48,6 +81,7 @@ export const ESP32ConnectionPage: React.FC<ESP32ConnectionPageProps> = ({ onComp
       addOutput("Solicitando porta serial...");
 
       selectedPort = await (navigator as any).serial.requestPort();
+      selectedPortRef.current = selectedPort; // Guarda referência
 
       if (!selectedPort) {
         addOutput("Nenhuma porta selecionada.");
@@ -539,7 +573,7 @@ export const ESP32ConnectionPage: React.FC<ESP32ConnectionPageProps> = ({ onComp
             <p className="text-sm text-green-900">✅ Após resetar, você já pode começar a fazer as missões práticas!</p>
           </div>
 
-          <Button size="lg" fullWidth onClick={onComplete}>
+          <Button size="lg" fullWidth onClick={() => finishAndKeepConnection(onComplete)}>
             Ir para o Dashboard
           </Button>
 

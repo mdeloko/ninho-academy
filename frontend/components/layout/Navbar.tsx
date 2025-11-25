@@ -12,6 +12,19 @@ interface PropriedadesNavbar {
 export const Navbar: React.FC<PropriedadesNavbar> = ({ user, onLogout, onOpenESP32Setup }) => {
   const [statusSincronizacao, setStatusSincronizacao] = React.useState<"ocioso" | "sincronizando" | "sucesso" | "erro">("ocioso");
   const [mostrarMenu, setMostrarMenu] = React.useState(false);
+  const [espConectado, setEspConectado] = React.useState(false);
+
+  // Verifica status da conexão periodicamente
+  React.useEffect(() => {
+    const checkConnection = () => {
+      setEspConectado(espService.isConnected());
+    };
+
+    checkConnection(); // Check imediato
+    const interval = setInterval(checkConnection, 2000); // Check a cada 2s
+
+    return () => clearInterval(interval);
+  }, []);
 
   const aoAbrirConfiguracaoESP = () => {
     if (onOpenESP32Setup) {
@@ -63,20 +76,14 @@ export const Navbar: React.FC<PropriedadesNavbar> = ({ user, onLogout, onOpenESP
 
         <div className="flex items-center gap-4 relative">
           {/* Botão Conectar/Configurar ESP32 */}
-          <Button
-            onClick={aoAbrirConfiguracaoESP}
-            variant="outline"
-            size="sm"
-            className="hidden md:flex items-center gap-2 px-3 py-1 rounded-xl text-xs"
-            title="Conectar e configurar ESP32"
-          >
+          <Button onClick={aoAbrirConfiguracaoESP} variant="outline" size="sm" className="hidden md:flex items-center gap-2 px-3 py-1 rounded-xl text-xs" title="Conectar e configurar ESP32">
             <span>📡</span>
             <span className="ml-1">ESP32</span>
           </Button>
 
-          <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-xl bg-white border-2 border-gray-100">
-            <span className="text-xl">🔌</span>
-            <span className="text-brand-brown font-bold text-sm">{user.temESP32 ? "Com ESP32" : "Sem ESP32"}</span>
+          <div className={`hidden md:flex items-center gap-2 px-3 py-1 rounded-xl border-2 ${espConectado ? "bg-green-50 border-green-200" : "bg-white border-gray-100"}`}>
+            <span className="text-xl">{espConectado ? "🟢" : "🔌"}</span>
+            <span className={`font-bold text-sm ${espConectado ? "text-green-700" : "text-brand-brown"}`}>{espConectado ? "Conectado" : user.temESP32 ? "ESP32 Offline" : "Sem ESP32"}</span>
           </div>
 
           <div className="flex items-center gap-2 px-3 py-1 rounded-xl bg-white border-2 border-gray-100">
